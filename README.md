@@ -12,27 +12,21 @@ PHP: 8.2+
 
 ## Install
 
-Once on Packagist:
-
 ```bash
-composer require rewi.sh/craft-mcp
-php craft plugin/install craft-mcp
+composer require "rewi.sh/craft-mcp:^1.0.0" -w && php craft plugin/install craft-mcp
 ```
 
-From GitHub before Packagist:
+With DDEV:
 
 ```bash
-composer config repositories.craft-mcp '{"type": "vcs", "url": "https://github.com/rewishapp/craft-mcp.git"}'
-composer require rewi.sh/craft-mcp:dev-main
-php craft plugin/install craft-mcp
+ddev composer require "rewi.sh/craft-mcp:^1.0.0" -w && ddev craft plugin/install craft-mcp
 ```
 
-Local path (this repo checked out next to your Craft project):
+Local path (this repo next to your Craft project):
 
 ```bash
-composer config repositories.craft-mcp '{"type": "path", "url": "../plugins/craft-mcp"}'
-composer require rewi.sh/craft-mcp:@dev
-php craft plugin/install craft-mcp
+composer config repositories.craft-mcp '{"type": "path", "url": "../plugins/craft-mcp", "options": {"symlink": true}}'
+composer require rewi.sh/craft-mcp:@dev -w && php craft plugin/install craft-mcp
 ```
 
 Open **MCP - All in one** in the control panel. In production the server starts off. Turn it on under Settings, or in `config/craft-mcp.php`:
@@ -66,4 +60,4 @@ Version comes from `composer.json`. On every push to `main`, CI runs lint and te
 
 To ship a new version: bump `version` in `composer.json`, add notes under that version in `CHANGELOG.md`, merge to `main`. Unchanged versions do not create another release.
 
-After the first GitHub Release, submit `rewi.sh/craft-mcp` on [Packagist](https://packagist.org/packages/submit) and enable the GitHub service hook so tags sync automatically.
+Packagist: [packagist.org/packages/rewi.sh/craft-mcp](https://packagist.org/packages/rewi.sh/craft-mcp)

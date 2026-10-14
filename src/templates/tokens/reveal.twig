@@ -1,0 +1,39 @@
+{% extends "_layouts/cp" %}
+{% set title = "New token" %}
+{% set selectedSubnavItem = "tokens" %}
+
+{% block content %}
+  {% include "craft-mcp/_includes/ui" %}
+  <div class="mcp">
+    {% if token %}
+      <p class="mcp-callout">Copy {{ name }} now. It is stored only as a hash and will not be shown again.</p>
+      <section class="pane mcp-card">
+        <div class="mcp-card-head">
+          <h2>Token</h2>
+          <button class="btn submit small" type="button" data-mcp-copy="#mcp-token">Copy token</button>
+        </div>
+        <div class="mcp-card-body">
+          <pre id="mcp-token">{{ token }}</pre>
+        </div>
+      </section>
+      {% if showSnippet and httpSnippet %}
+        <section class="pane mcp-card">
+          <div class="mcp-card-head">
+            <h2>Cursor, Claude Code, Codex, or other</h2>
+            <button class="btn small" type="button" data-mcp-copy="#mcp-http">Copy config</button>
+          </div>
+          <div class="mcp-card-body">
+            <pre id="mcp-http">{{ httpSnippet }}</pre>
+          </div>
+        </section>
+      {% endif %}
+    {% else %}
+      <div class="pane">
+        <div class="mcp-empty">
+          <strong>This token was already revealed</strong>
+          <p>Create a new one if you still need the secret.</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

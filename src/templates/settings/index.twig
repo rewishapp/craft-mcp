@@ -1,0 +1,113 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+{% set title = "Settings" %}
+{% set selectedSubnavItem = "settings" %}
+{% set fullPageForm = true %}
+
+{% block content %}
+  {% include "craft-mcp/_includes/ui" %}
+  {{ actionInput('craft-mcp/cp/save-settings') }}
+  <div class="mcp">
+    <p class="mcp-intro">A <code>config/craft-mcp.php</code> file overrides these values where it exists. Production starts with the server and writes turned off until you opt in.</p>
+
+    <section class="pane mcp-settings">
+      <h2>Server</h2>
+      <p class="mcp-intro">What the agent is allowed to do on this install.</p>
+      {{ forms.lightswitchField({
+        label: 'Server enabled',
+        name: 'settings[enabled]',
+        on: settings.enabled,
+        first: true,
+      }) }}
+      {{ forms.lightswitchField({
+        label: 'Allow writes and other dangerous tools',
+        instructions: 'Entry edits, uploads, SQL, GraphQL mutations, backups, and cache clearing.',
+        name: 'settings[enableDangerousTools]',
+        on: settings.enableDangerousTools,
+      }) }}
+      {{ forms.lightswitchField({
+        label: 'Allow tinker when psy/psysh is installed',
+        name: 'settings[enableTinker]',
+        on: settings.enableTinker,
+      }) }}
+      {{ forms.selectField({
+        label: 'Entry write mode',
+        name: 'settings[entryWriteMode]',
+        value: settings.entryWriteMode,
+        options: [
+          { label: 'Draft, then review', value: 'draft' },
+          { label: 'Live', value: 'live' },
+        ],
+      }) }}
+      {{ forms.checkboxSelectField({
+        label: 'Scopes that cannot be minted',
+        name: 'settings[disabledScopes]',
+        values: settings.disabledScopes,
+        options: [
+          { label: 'Readonly', value: 'readonly' },
+          { label: 'Content', value: 'content' },
+          { label: 'Full', value: 'full' },
+        ],
+      }) }}
+    </section>
+
+    <section class="pane mcp-settings">
+      <h2>HTTP</h2>
+      <p class="mcp-intro">Remote clients. Cursor, Claude Code, Codex, and other local clients can keep using stdio with this off.</p>
+      {{ forms.lightswitchField({
+        label: 'HTTP transport',
+        name: 'settings[httpTransport]',
+        on: settings.httpTransport,
+        first: true,
+      }) }}
+      {{ forms.textField({
+        label: 'HTTP path',
+        name: 'settings[httpPath]',
+        value: settings.httpPath,
+      }) }}
+      {{ forms.textField({
+        label: 'Public base URL',
+        instructions: 'Set this when the control panel is not the URL clients should call.',
+        name: 'settings[httpPublicUrl]',
+        value: settings.httpPublicUrl,
+        type: 'url',
+        placeholder: 'https://cms.example.com',
+      }) }}
+      {{ forms.textField({
+        label: 'Session lifetime in seconds',
+        name: 'settings[httpSessionTtl]',
+        value: settings.httpSessionTtl,
+        type: 'number',
+        min: 60,
+      }) }}
+      {{ forms.textareaField({
+        label: 'Allowed IPs',
+        instructions: 'One address per line. Leave empty to allow any IP.',
+        name: 'settings[allowedIps]',
+        value: settings.allowedIps|join('\n'),
+        rows: 4,
+      }) }}
+      {{ forms.lightswitchField({
+        label: 'Publish /.well-known/mcp/server-card.json',
+        name: 'settings[publishServerCard]',
+        on: settings.publishServerCard,
+      }) }}
+    </section>
+
+    <section class="pane mcp-settings">
+      <h2>Agent</h2>
+      {{ forms.lightswitchField({
+        label: 'Show a client config when a token is created',
+        name: 'settings[showClientConfigSnippet]',
+        on: settings.showClientConfigSnippet,
+        first: true,
+      }) }}
+      {{ forms.textareaField({
+        label: 'Extra instructions for the agent',
+        name: 'settings[additionalInstructions]',
+        value: settings.additionalInstructions,
+        rows: 4,
+      }) }}
+    </section>
+  </div>
+{% endblock %}

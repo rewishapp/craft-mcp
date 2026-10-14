@@ -1,0 +1,35 @@
+{% extends "_layouts/cp" %}
+{% set title = "Setup" %}
+{% set selectedSubnavItem = "setup" %}
+
+{% block content %}
+  {% include "craft-mcp/_includes/ui" %}
+  <div class="mcp">
+    <p class="mcp-intro">Paste the stdio block into Cursor, Claude Code, Codex, or another client. Use HTTP when the client is not on this machine.</p>
+
+    <section class="pane mcp-card">
+      <div class="mcp-card-head">
+        <h2>Local stdio</h2>
+        <button class="btn small" type="button" data-mcp-copy="#mcp-stdio">Copy</button>
+      </div>
+      <div class="mcp-card-body">
+        <pre id="mcp-stdio">{{ stdioSnippet }}</pre>
+      </div>
+    </section>
+
+    <section class="pane mcp-card">
+      <div class="mcp-card-head">
+        <h2>Remote HTTP</h2>
+        <button class="btn small" type="button" data-mcp-copy="#mcp-remote">Copy</button>
+      </div>
+      <div class="mcp-card-body">
+        {% if settings.httpTransport %}
+          <p class="mcp-callout">Endpoint <code>{{ endpointUrl }}</code>. Create a token, then replace YOUR_TOKEN.</p>
+        {% else %}
+          <p class="mcp-callout">HTTP is off. Turn it on in Settings before sharing this URL.</p>
+        {% endif %}
+        <pre id="mcp-remote">{{ httpSnippet }}</pre>
+      </div>
+    </section>
+  </div>
+{% endblock %}

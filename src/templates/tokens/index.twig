@@ -1,0 +1,146 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+{% set title = "Tokens" %}
+{% set selectedSubnavItem = "tokens" %}
+
+{% block content %}
+  {% include "craft-mcp/_includes/ui" %}
+  <div class="mcp">
+    <p class="mcp-intro">HTTP clients send a bearer token. Readonly can look, content can write entries, and full can use system tools. The secret is shown once.</p>
+
+    <div class="mcp-grid">
+      <section class="pane mcp-card">
+        <div class="mcp-card-head"><h2>Tokens</h2></div>
+        {% if tokens is empty %}
+          <div class="mcp-empty">
+            <strong>No tokens yet</strong>
+            <p>Create one for Cursor, Claude Code, Codex, or another client.</p>
+          </div>
+        {% else %}
+          <table>
+            <thead><tr><th>Name</th><th>Scope</th><th>Last used</th><th></th></tr></thead>
+            <tbody>
+              {% for token in tokens %}
+                <tr>
+                  <td>
+                    <strong>{{ token.name }}</strong>
+                    <span class="mcp-muted"><code>{{ token.tokenPrefix }}…</code> · {{ owners[token.id] ?? '' }}</span>
+                  </td>
+                  <td><span class="mcp-tag">{{ token.scope }}</span></td>
+                  <td>{{ token.lastUsedAt ? token.lastUsedAt|date('short') : 'Never' }}</td>
+                  <td class="mcp-actions-cell">
+                    <form method="post">
+                      {{ csrfInput() }}
+                      {{ actionInput('craft-mcp/cp/revoke-token') }}
+                      {{ hiddenInput('tokenId', token.id) }}
+                      <button class="btn small" type="submit">Revoke</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      </section>
+
+      <section class="pane mcp-settings">
+        <h2>New token</h2>
+        <form method="post">
+          {{ csrfInput() }}
+          {{ actionInput('craft-mcp/cp/create-token') }}
+          {{ forms.textField({
+            label: 'Name',
+            instructions: 'Where this token will be used.',
+            name: 'name',
+            placeholder: 'Editorial laptop',
+            required: true,
+            first: true,
+          }) }}
+          {{ forms.selectField({
+            label: 'Scope',
+            id: 'scope',
+            name: 'scope',
+            options: [
+              { label: 'Readonly', value: 'readonly' },
+              { label: 'Content', value: 'content' },
+            ]|merge(isAdmin ? [{ label: 'Full', value: 'full' }] : []),
+          }) }}
+          <div class="mcp-scope-note" id="mcp-scope-note" role="status">
+            <strong data-mcp-scope-title>Readonly</strong>
+            <span data-mcp-scope-body>Browse entries, schema, assets, and sites. This token cannot change anything.</span>
+          </div>
+          {{ forms.textField({
+            label: 'Expires in days',
+            instructions: 'Leave blank to keep it until you revoke it.',
+            name: 'days',
+            type: 'number',
+            min: 0,
+          }) }}
+          {% if sections is not empty %}
+            {{ forms.lightswitchField({
+              label: 'Limit which sections this token can change',
+              id: 'limit-sections',
+              on: false,
+            }) }}
+            <div id="mcp-section-limit" hidden>
+              {{ forms.checkboxSelectField({
+                label: 'Sections',
+                instructions: 'Check the sections this token may change.',
+                name: 'sections',
+                options: sections|map(section => { label: section.name, value: section.handle }),
+                values: [],
+              }) }}
+            </div>
+          {% endif %}
+          <div class="mcp-actions">
+            <button class="btn submit" type="submit">Create token</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var notes = {
+        readonly: ['Readonly', 'Browse entries, schema, assets, and sites. This token cannot change anything.'],
+        content: ['Content', 'Everything in Readonly, plus create, update, publish, delete, and duplicate entries. Writes stay as drafts until someone publishes them.'],
+        full: ['Full', 'Everything in Content, plus SQL, GraphQL mutations, backups, cache clearing, and tinker.']
+      };
+      var select = document.getElementById('scope');
+      var title = document.querySelector('[data-mcp-scope-title]');
+      var body = document.querySelector('[data-mcp-scope-body]');
+      var show = function () {
+        var note = notes[select.value] || notes.readonly;
+        title.textContent = note[0];
+        body.textContent = note[1];
+      };
+      if (select) {
+        select.addEventListener('change', show);
+        show();
+      }
+
+      var form = document.querySelector('.mcp-settings form');
+      var limit = document.getElementById('limit-sections');
+      var panel = document.getElementById('mcp-section-limit');
+      var limitOn = function () {
+        return limit && (limit.classList.contains('on') || limit.getAttribute('aria-checked') === 'true');
+      };
+      var syncLimit = function () {
+        if (!panel) return;
+        panel.hidden = !limitOn();
+      };
+      if (limit) {
+        limit.addEventListener('click', function () { setTimeout(syncLimit, 0); });
+        syncLimit();
+      }
+      if (form && limit) {
+        form.addEventListener('submit', function () {
+          var on = limitOn();
+          document.querySelectorAll('#mcp-section-limit input').forEach(function (input) {
+            input.disabled = !on;
+          });
+        });
+      }
+    })();
+  </script>
+{% endblock %}

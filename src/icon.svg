@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 82 82" fill="none">
+  <defs>
+    <linearGradient id="ai" x1="10" y1="8" x2="72" y2="74" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+  <circle cx="41" cy="41" r="41" fill="url(#ai)"/>
+  <!-- Same mark paths as icon-mask.svg -->
+  <g transform="translate(5 5) scale(3)" fill="#fff">
+    <path
+      fill-rule="evenodd"
+      d="M8.63 3.85a4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.77 4 4 0 0 1 0 6.76 4 4 0 0 1-4.78 4.77 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76 4 4 0 0 1 4.78-4.77ZM12 5.75a6.25 6.25 0 1 0 0 12.5 6.25 6.25 0 0 0 0-12.5Z"
+    />
+    <path
+      fill-rule="evenodd"
+      d="M12 8.1a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8ZM12 9.85a2.15 2.15 0 1 1 0 4.3 2.15 2.15 0 0 1 0-4.3Z"
+    />
+    <path d="M11.15 7.05h1.7v1.55h-1.7z"/>
+    <path d="M11.15 15.4h1.7v1.55h-1.7z"/>
+    <path d="M15.4 11.15h1.55v1.7H15.4z"/>
+    <path d="M7.05 11.15h1.55v1.7H7.05z"/>
+    <path transform="rotate(45 14.95 9.05)" d="M14.1 8.25h1.7v1.55h-1.7z"/>
+    <path transform="rotate(45 9.05 14.95)" d="M8.2 14.15h1.7v1.55H8.2z"/>
+    <path transform="rotate(-45 14.95 14.95)" d="M14.1 14.15h1.7v1.55h-1.7z"/>
+    <path transform="rotate(-45 9.05 9.05)" d="M8.2 8.25h1.7v1.55H8.2z"/>
+  </g>
+</svg>

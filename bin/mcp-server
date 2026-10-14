@@ -1,0 +1,83 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Mcp\Server\Transport\StdioTransport;
+use rewish\craft\mcp\Mcp;
+use rewish\craft\mcp\services\ServerFactory;
+use rewish\craft\mcp\support\CallContext;
+
+ob_start(static function (string $buffer): string {
+    if ($buffer !== '') {
+        fwrite(STDERR, $buffer);
+    }
+
+    return '';
+}, 1, PHP_OUTPUT_HANDLER_CLEANABLE);
+
+$root = null;
+$candidates = [];
+$autoload = $GLOBALS['_composer_autoload_path'] ?? null;
+if (is_string($autoload) && $autoload !== '') {
+    $candidates[] = dirname($autoload, 2);
+}
+$cursor = getcwd() ?: __DIR__;
+for ($i = 0; $i < 8; $i++) {
+    $candidates[] = $cursor;
+    $parent = dirname($cursor);
+    if ($parent === $cursor) {
+        break;
+    }
+    $cursor = $parent;
+}
+$cursor = __DIR__;
+for ($i = 0; $i < 8; $i++) {
+    $cursor = dirname($cursor);
+    $candidates[] = $cursor;
+}
+$packageRoot = dirname(__DIR__);
+foreach ($candidates as $candidate) {
+    if ($candidate === $packageRoot) {
+        continue;
+    }
+    if (is_file($candidate . '/vendor/autoload.php') && is_file($candidate . '/vendor/craftcms/cms/bootstrap/console.php')) {
+        $root = $candidate;
+        break;
+    }
+}
+
+if ($root === null) {
+    fwrite(STDERR, "Could not find a Craft install. Run this from a project that requires rewi.sh/craft-mcp.\n");
+    exit(1);
+}
+
+chdir($root);
+
+if (is_file($root . '/bootstrap.php')) {
+    require $root . '/bootstrap.php';
+    require CRAFT_VENDOR_PATH . '/craftcms/cms/bootstrap/console.php';
+} else {
+    require $root . '/vendor/autoload.php';
+    require $root . '/vendor/craftcms/cms/bootstrap/console.php';
+}
+
+if (Mcp::getInstance() === null) {
+    fwrite(STDERR, "MCP - All in one is not installed. Run: php craft plugin/install craft-mcp\n");
+    exit(1);
+}
+
+if (!Mcp::settings()->enabled) {
+    fwrite(STDERR, "MCP - All in one is disabled. Turn it on in the control panel, or set 'enabled' => true in config/craft-mcp.php.\n");
+    exit(1);
+}
+
+CallContext::reset('stdio');
+
+try {
+    $server = (new ServerFactory())->create();
+    $server->run(new StdioTransport());
+} catch (Throwable $e) {
+    fwrite(STDERR, 'MCP server failed: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}

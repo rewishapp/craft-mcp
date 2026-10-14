@@ -1,0 +1,39 @@
+{% extends "_layouts/cp" %}
+{% set title = "Agent drafts" %}
+{% set selectedSubnavItem = "drafts" %}
+
+{% block content %}
+  {% include "craft-mcp/_includes/ui" %}
+  <div class="mcp">
+    <p class="mcp-intro">Drafts created by the server stay here until someone publishes them.</p>
+    <section class="pane mcp-card">
+      {% if drafts is empty %}
+        <div class="mcp-empty">
+          <strong>No drafts waiting</strong>
+          <p>Entry writes show up here when the write mode is draft.</p>
+        </div>
+      {% else %}
+        <table>
+          <thead><tr><th>Entry</th><th>Section</th><th>Updated</th><th></th></tr></thead>
+          <tbody>
+            {% for draft in drafts %}
+              <tr>
+                <td><a href="{{ draft.cpEditUrl }}">{{ draft.title ?: 'Untitled' }}</a></td>
+                <td>{{ draft.section.handle ?? '—' }}</td>
+                <td>{{ draft.dateUpdated ? draft.dateUpdated|date('short') : '—' }}</td>
+                <td class="mcp-actions-cell">
+                  <form method="post">
+                    {{ csrfInput() }}
+                    {{ actionInput('craft-mcp/cp/publish-draft') }}
+                    {{ hiddenInput('entryId', draft.id) }}
+                    <button class="btn submit small" type="submit">Publish</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

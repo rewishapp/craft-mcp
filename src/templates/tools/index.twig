@@ -1,0 +1,75 @@
+{% extends "_layouts/cp" %}
+{% set title = "Tools" %}
+{% set selectedSubnavItem = "tools" %}
+{% set toolbar %}
+  <input class="mcp-search" type="search" placeholder="Search tools" data-mcp-filter aria-label="Search tools">
+{% endset %}
+
+{% block content %}
+  {% include "craft-mcp/_includes/ui" %}
+  <div class="mcp">
+    <p class="mcp-intro">Hidden tools stay out of the agent’s list. Writes also need the switch in Settings.</p>
+    <section class="pane mcp-card mcp-tools">
+      <div class="mcp-card-head">
+        <h2>{{ tools|length }} tools</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Access</th>
+            <th>State</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tool in tools %}
+            {% set previous = loop.first ? null : tools[loop.index0 - 1] %}
+            {% if previous is null or previous.category != tool.category %}
+              <tr class="mcp-group" data-mcp-group="{{ tool.category }}">
+                <td colspan="4">{{ tool.category|capitalize }}</td>
+              </tr>
+            {% endif %}
+            <tr data-mcp-row="{{ tool.name }} {{ tool.category }} {{ tool.description }}" data-mcp-cat="{{ tool.category }}">
+              <td>
+                <div class="mcp-tool">
+                  <code>{{ tool.name }}</code>
+                  <span>{{ tool.description }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="mcp-tool-meta">
+                  <span class="mcp-tag">{{ tool.minScope }}</span>
+                  {% if tool.dangerous %}<span class="mcp-pill is-warn">write</span>{% endif %}
+                </div>
+              </td>
+              <td>
+                {% if not tool.available %}
+                  <span class="mcp-tag">unavailable</span>
+                {% elseif tool.exposed %}
+                  <span class="mcp-pill is-on">exposed</span>
+                {% else %}
+                  <span class="mcp-pill is-off">hidden</span>
+                {% endif %}
+              </td>
+              <td class="mcp-actions-cell">
+                {% if canManage and tool.available %}
+                  <form method="post">
+                    {{ csrfInput() }}
+                    {{ actionInput('craft-mcp/cp/toggle-tool') }}
+                    {{ hiddenInput('tool', tool.name) }}
+                    <button class="mcp-toggle" type="submit">{{ tool.exposed ? 'Hide' : 'Show' }}</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="mcp-empty" data-mcp-filter-empty hidden>
+        <strong>No tools match</strong>
+        <p>Try another name or category.</p>
+      </div>
+    </section>
+  </div>
+{% endblock %}

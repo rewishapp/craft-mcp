@@ -1,0 +1,36 @@
+{% extends "_layouts/cp" %}
+{% set title = "Activity" %}
+{% set selectedSubnavItem = "activity" %}
+
+{% block content %}
+  {% include "craft-mcp/_includes/ui" %}
+  <div class="mcp">
+    <p class="mcp-intro">Every tool call, including failures. Stdio calls have no user.</p>
+    <section class="pane mcp-card">
+      {% if rows is empty %}
+        <div class="mcp-empty">
+          <strong>No calls recorded</strong>
+          <p>Activity shows up here after an agent uses the server.</p>
+        </div>
+      {% else %}
+        <table>
+          <thead><tr><th>When</th><th>Tool</th><th>Via</th><th>Result</th><th>ms</th></tr></thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>{{ row.dateCreated|date('short') }} {{ row.dateCreated|time('short') }}</td>
+                <td>
+                  <code>{{ row.tool }}</code>
+                  {% if row.message %}<span class="mcp-muted">{{ row.message }}</span>{% endif %}
+                </td>
+                <td><span class="mcp-tag">{{ row.transport }}</span></td>
+                <td>{% if row.success %}<span class="mcp-pill is-on">ok</span>{% else %}<span class="mcp-pill is-off">failed</span>{% endif %}</td>
+                <td>{{ row.durationMs }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

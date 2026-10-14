@@ -1,0 +1,43 @@
+<?php
+
+$finder = PhpCsFixer\Finder::create()
+    ->in([
+        __DIR__.'/src',
+        __DIR__.'/tests',
+    ])
+;
+
+$config = (new PhpCsFixer\Config())
+    ->setRules([
+        '@Symfony' => true,
+        '@Symfony:risky' => true,
+        '@PHP80Migration' => true,
+        '@PHPUnit75Migration:risky' => true,
+        '@PhpCsFixer' => true,
+        'native_function_invocation' => ['strict' => false],
+        'array_indentation' => true,
+        'array_syntax' => ['syntax' => 'short'],
+        'combine_nested_dirname' => true,
+        'linebreak_after_opening_tag' => true,
+        'list_syntax' => ['syntax' => 'short'],
+        'protected_to_private' => false,
+        'single_trait_insert_per_statement' => true,
+        'ternary_to_null_coalescing' => true,
+        'multiline_whitespace_before_semicolons' => ['strategy' => 'new_line_for_chained_calls'],
+        'php_unit_internal_class' => false,
+        'yoda_style' => false,
+    ])
+    ->setRiskyAllowed(true)
+    ->setFinder($finder)
+    ->setCacheFile(__DIR__.'/.php-cs-fixer.cache')
+;
+
+if (method_exists($config, 'setUnsupportedPhpVersionAllowed')) {
+    $config->setUnsupportedPhpVersionAllowed(true);
+}
+
+if (class_exists(\PhpCsFixer\Runner\Parallel\ParallelConfigFactory::class)) {
+    $config->setParallelConfig(\PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect());
+}
+
+return $config;

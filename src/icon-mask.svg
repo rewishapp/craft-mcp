@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Shared mark with icon.svg. Craft nav forces fill + stroke-width:0. -->
+  <path
+    fill="#fff"
+    fill-rule="evenodd"
+    d="M8.63 3.85a4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.77 4 4 0 0 1 0 6.76 4 4 0 0 1-4.78 4.77 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76 4 4 0 0 1 4.78-4.77ZM12 5.75a6.25 6.25 0 1 0 0 12.5 6.25 6.25 0 0 0 0-12.5Z"
+  />
+  <path
+    fill="#fff"
+    fill-rule="evenodd"
+    d="M12 8.1a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8ZM12 9.85a2.15 2.15 0 1 1 0 4.3 2.15 2.15 0 0 1 0-4.3Z"
+  />
+  <path fill="#fff" d="M11.15 7.05h1.7v1.55h-1.7z"/>
+  <path fill="#fff" d="M11.15 15.4h1.7v1.55h-1.7z"/>
+  <path fill="#fff" d="M15.4 11.15h1.55v1.7H15.4z"/>
+  <path fill="#fff" d="M7.05 11.15h1.55v1.7H7.05z"/>
+  <path fill="#fff" transform="rotate(45 14.95 9.05)" d="M14.1 8.25h1.7v1.55h-1.7z"/>
+  <path fill="#fff" transform="rotate(45 9.05 14.95)" d="M8.2 14.15h1.7v1.55H8.2z"/>
+  <path fill="#fff" transform="rotate(-45 14.95 14.95)" d="M14.1 14.15h1.7v1.55h-1.7z"/>
+  <path fill="#fff" transform="rotate(-45 9.05 9.05)" d="M8.2 8.25h1.7v1.55H8.2z"/>
+</svg>

@@ -1,0 +1,114 @@
+{% extends "_layouts/cp" %}
+{% set title = "Dashboard" %}
+{% set selectedSubnavItem = "dashboard" %}
+{% set actionButton %}
+  <a class="btn submit" href="{{ cpUrl('craft-mcp/setup') }}">Connect</a>
+{% endset %}
+
+{% block content %}
+  {% include "craft-mcp/_includes/ui" %}
+  <div class="mcp">
+    <p class="mcp-intro">Agents read this install directly. Writes land as drafts you can review before they go live.</p>
+
+    <div class="mcp-status">
+      <span class="mcp-pill {{ settings.enabled ? 'is-on' : 'is-off' }}">{{ settings.enabled ? 'Server on' : 'Server off' }}</span>
+      <span class="mcp-tag">{{ craft.app.env }}</span>
+      <span class="mcp-pill {{ settings.httpTransport ? 'is-on' : '' }}">{{ settings.httpTransport ? 'HTTP on' : 'HTTP off' }}</span>
+      <span class="mcp-pill {{ settings.enableDangerousTools ? 'is-warn' : '' }}">{{ settings.enableDangerousTools ? 'Writes on' : 'Writes off' }}</span>
+    </div>
+
+    <div class="mcp-metrics">
+      <a class="pane mcp-metric" href="{{ cpUrl('craft-mcp/tools') }}">
+        <em>Tools</em>
+        <b>{{ toolCount }}</b>
+        <span>of {{ toolTotal }} exposed</span>
+      </a>
+      <a class="pane mcp-metric" href="{{ cpUrl('craft-mcp/tokens') }}">
+        <em>Tokens</em>
+        <b>{{ tokenCount }}</b>
+        <span>access tokens</span>
+      </a>
+      <a class="pane mcp-metric" href="{{ cpUrl('craft-mcp/activity') }}">
+        <em>Activity</em>
+        <b>{{ callsToday }}</b>
+        <span>calls today</span>
+      </a>
+      <a class="pane mcp-metric" href="{{ cpUrl('craft-mcp/drafts') }}">
+        <em>Drafts</em>
+        <b>{{ draftCount }}</b>
+        <span>waiting for review</span>
+      </a>
+    </div>
+
+    <div class="mcp-grid">
+      <section class="pane mcp-card">
+        <div class="mcp-card-head"><h2>Recent activity</h2></div>
+        {% if activity is empty %}
+          <div class="mcp-empty">
+            <strong>No tool calls yet</strong>
+            <p>Connect Cursor, Claude Code, Codex, or another client, then ask it to list sections.</p>
+          </div>
+        {% else %}
+          <table>
+            <thead><tr><th>Tool</th><th>Result</th><th>ms</th><th>When</th></tr></thead>
+            <tbody>
+              {% for row in activity %}
+                <tr>
+                  <td><code>{{ row.tool }}</code></td>
+                  <td>{% if row.success %}<span class="mcp-pill is-on">ok</span>{% else %}<span class="mcp-pill is-off">failed</span>{% endif %}</td>
+                  <td>{{ row.durationMs }}</td>
+                  <td>{{ row.dateCreated|date('short') }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      </section>
+
+      <section class="pane mcp-card">
+        <div class="mcp-card-head">
+          <h2>Connect Cursor, Claude Code, Codex, or other</h2>
+          <a class="btn small" href="{{ cpUrl('craft-mcp/setup') }}">Full setup</a>
+        </div>
+        <div class="mcp-card-body mcp-connect">
+          <div class="mcp-connect-block">
+            <div class="mcp-connect-head">
+              <div>
+                <strong>Local</strong>
+                <span class="mcp-tag">stdio</span>
+              </div>
+              <button type="button" class="btn small" data-mcp-copy="#mcp-dash-stdio">Copy</button>
+            </div>
+            <p>This machine only. Uses this install’s PHP.</p>
+            <pre id="mcp-dash-stdio">{{ stdioSnippet }}</pre>
+          </div>
+
+          <div class="mcp-connect-block">
+            <div class="mcp-connect-head">
+              <div>
+                <strong>Online / production</strong>
+                <span class="mcp-pill {{ settings.httpTransport ? 'is-on' : '' }}">{{ settings.httpTransport ? 'HTTP on' : 'HTTP off' }}</span>
+              </div>
+              {% if settings.httpTransport %}
+                <a class="btn small submit" href="{{ cpUrl('craft-mcp/tokens') }}">Create token</a>
+              {% else %}
+                <a class="btn small" href="{{ cpUrl('craft-mcp/settings') }}">Enable HTTP</a>
+              {% endif %}
+            </div>
+            {% if settings.httpTransport %}
+              <p>Remote clients call <code>{{ endpointUrl }}</code>. Create a token, then paste the config.</p>
+              <pre id="mcp-dash-http">{{ httpSnippet }}</pre>
+              <div class="mcp-actions">
+                <button type="button" class="btn small" data-mcp-copy="#mcp-dash-http">Copy config</button>
+                <a class="btn small" href="{{ cpUrl('craft-mcp/tokens') }}">Tokens</a>
+              </div>
+            {% else %}
+              <p>Turn on HTTP transport for production or any client that is not on this machine. Then mint a bearer token.</p>
+              <p class="mcp-callout">Endpoint will be <code>{{ endpointUrl }}</code></p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+{% endblock %}

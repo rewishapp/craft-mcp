@@ -1,0 +1,74 @@
+{
+  "name": "rewi.sh/craft-mcp",
+  "description": "MCP - All in one. An MCP server for Craft CMS with content tools and a control panel for tokens, activity, and agent drafts.",
+  "type": "craft-plugin",
+  "license": "MIT",
+  "version": "1.0.0",
+  "homepage": "https://rewi.sh",
+  "keywords": [
+    "craftcms",
+    "craft-plugin",
+    "mcp",
+    "model-context-protocol",
+    "ai"
+  ],
+  "authors": [
+    {
+      "name": "rewi.sh",
+      "homepage": "https://rewi.sh"
+    }
+  ],
+  "support": {
+    "docs": "https://github.com/rewishapp/craft-mcp#readme",
+    "issues": "https://github.com/rewishapp/craft-mcp/issues",
+    "source": "https://github.com/rewishapp/craft-mcp"
+  },
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.0.0 || ^6.0",
+    "mcp/sdk": "^0.7 || ^0.8",
+    "nyholm/psr7": "^1.8",
+    "symfony/finder": "^6.4 || ^7.3 || ^8.0"
+  },
+  "require-dev": {
+    "php-cs-fixer/shim": "^3.85",
+    "phpunit/phpunit": "^11.5"
+  },
+  "suggest": {
+    "psy/psysh": "Required only if the tinker tool is turned on"
+  },
+  "autoload": {
+    "psr-4": {
+      "rewish\\craft\\mcp\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "rewish\\craft\\mcp\\tests\\": "tests/"
+    }
+  },
+  "bin": [
+    "bin/mcp-server"
+  ],
+  "extra": {
+    "handle": "craft-mcp",
+    "name": "MCP - All in one",
+    "developer": "rewi.sh",
+    "developerUrl": "https://rewi.sh",
+    "class": "rewish\\craft\\mcp\\Mcp"
+  },
+  "config": {
+    "allow-plugins": {
+      "craftcms/plugin-installer": true,
+      "php-http/discovery": true,
+      "yiisoft/yii2-composer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "test": "phpunit",
+    "fix": "vendor/bin/php-cs-fixer fix --diff --config=./.php-cs-fixer.dist.php",
+    "fix:dry-run": "vendor/bin/php-cs-fixer fix --dry-run --diff --config=./.php-cs-fixer.dist.php",
+    "lint": "@fix:dry-run"
+  }
+}

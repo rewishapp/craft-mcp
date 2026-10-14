@@ -55,6 +55,8 @@
     "name": "MCP - All in one",
     "developer": "rewi.sh",
     "developerUrl": "https://rewi.sh",
+    "documentationUrl": "https://github.com/rewishapp/craft-mcp/blob/main/docs/README.md",
+    "changelogUrl": "https://raw.githubusercontent.com/rewishapp/craft-mcp/main/CHANGELOG.md",
     "class": "rewish\\craft\\mcp\\Mcp"
   },
   "config": {

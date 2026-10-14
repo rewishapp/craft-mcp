@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Tag and publish GitHub Release
+    runs-on: ubuntu-latest
+    # Skip bot loops and only run on the default branch tip.
+    if: github.event.repository.fork == false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch all tags
+        run: git fetch --tags --force
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --ignore-platform-reqs
+
+      - name: Lint and test
+        run: |
+          composer run lint
+          composer run test
+
+      - name: Read version from composer.json
+        id: version
+        run: |
+          VERSION=$(php -r 'echo json_decode(file_get_contents("composer.json"))->version;')
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid composer.json version: $VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this version is already released
+        id: check
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG already exists — skipping release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG is new — will release."
+          fi
+
+      - name: Extract changelog notes for this version
+        id: notes
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          NOTES_FILE=$(mktemp)
+          php -r '
+            $version = getenv("VERSION");
+            $changelog = file_get_contents("CHANGELOG.md");
+            if ($changelog === false) {
+              fwrite(STDERR, "CHANGELOG.md is missing\n");
+              exit(1);
+            }
+            $pattern = "/^##\s+" . preg_quote($version, "/") . "(?:\s+-\s+[^\n]+)?\s*$/m";
+            if (!preg_match($pattern, $changelog, $m, PREG_OFFSET_CAPTURE)) {
+              fwrite(STDERR, "CHANGELOG.md has no ## $version section\n");
+              exit(1);
+            }
+            $start = $m[0][1];
+            $after = substr($changelog, $start);
+            if (preg_match("/\n##\s+/", $after, $next, PREG_OFFSET_CAPTURE, strlen($m[0][0]))) {
+              $section = substr($after, 0, $next[0][1]);
+            } else {
+              $section = $after;
+            }
+            echo trim($section) . "\n";
+          ' > "$NOTES_FILE"
+          {
+            echo "path=$NOTES_FILE"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Create tag and GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          NOTES_FILE: ${{ steps.notes.outputs.path }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $VERSION"
+          git push origin "$TAG"
+          gh release create "$TAG" \
+            --title "$VERSION" \
+            --notes-file "$NOTES_FILE" \
+            --verify-tag

@@ -59,3 +59,11 @@ The Setup screen copies a stdio config that points at `bin/mcp-server`. For a re
 - `full` can use system, database, and GraphQL mutation tools. Only admins can mint it.
 
 A token can be limited to specific sections. Calls still have to pass Craft’s own permissions for that user.
+
+## Releases
+
+Version comes from `composer.json`. On every push to `main`, CI runs lint and tests. If that version is not tagged yet and `CHANGELOG.md` has a matching `## x.y.z` section, GitHub Actions creates `vX.Y.Z` and a GitHub Release.
+
+To ship a new version: bump `version` in `composer.json`, add notes under that version in `CHANGELOG.md`, merge to `main`. Unchanged versions do not create another release.
+
+After the first GitHub Release, submit `rewi.sh/craft-mcp` on [Packagist](https://packagist.org/packages/submit) and enable the GitHub service hook so tags sync automatically.

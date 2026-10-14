@@ -3,7 +3,9 @@
 MCP server for Craft CMS. Agents can read and write content, inspect the schema, and you get a control panel for tokens, activity, and drafts.
 
 Docs: [docs/README.md](docs/README.md)  
-Source: [github.com/rewishapp/craft-mcp](https://github.com/rewishapp/craft-mcp)
+Source: [github.com/rewishapp/craft-mcp](https://github.com/rewishapp/craft-mcp)  
+Packagist: [packagist.org/packages/rewi.sh/craft-mcp](https://packagist.org/packages/rewi.sh/craft-mcp)  
+Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 Package: `rewi.sh/craft-mcp`  
 Handle: `craft-mcp`  
@@ -53,11 +55,3 @@ The Setup screen copies a stdio config that points at `bin/mcp-server`. For a re
 - `full` can use system, database, and GraphQL mutation tools. Only admins can mint it.
 
 A token can be limited to specific sections. Calls still have to pass Craft’s own permissions for that user.
-
-## Releases
-
-Version comes from `composer.json`. On every push to `main`, CI runs lint and tests. If that version is not tagged yet and `CHANGELOG.md` has a matching `## x.y.z` section, GitHub Actions creates `vX.Y.Z` and a GitHub Release.
-
-To ship a new version: bump `version` in `composer.json`, add notes under that version in `CHANGELOG.md`, merge to `main`. Unchanged versions do not create another release.
-
-Packagist: [packagist.org/packages/rewi.sh/craft-mcp](https://packagist.org/packages/rewi.sh/craft-mcp)

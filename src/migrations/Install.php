@@ -56,6 +56,12 @@ class Install extends Migration
             $this->createIndex(null, '{{%craftmcp_activity}}', ['dateCreated'], false);
         }
 
+        // OAuth tables plus craftmcp_tokens.grantId. The migration is guarded
+        // step by step, so a fresh install and an upgrade end in the same schema.
+        $oauth = new m261015_120000_add_oauth_tables();
+        $oauth->db = $this->db;
+        $oauth->safeUp();
+
         return true;
     }
 
@@ -64,6 +70,10 @@ class Install extends Migration
         $this->dropTableIfExists('{{%craftmcp_activity}}');
         $this->dropTableIfExists('{{%craftmcp_sessions}}');
         $this->dropTableIfExists('{{%craftmcp_tokens}}');
+        $this->dropTableIfExists('{{%craftmcp_oauth_refresh_tokens}}');
+        $this->dropTableIfExists('{{%craftmcp_oauth_codes}}');
+        $this->dropTableIfExists('{{%craftmcp_oauth_grants}}');
+        $this->dropTableIfExists('{{%craftmcp_oauth_clients}}');
 
         return true;
     }

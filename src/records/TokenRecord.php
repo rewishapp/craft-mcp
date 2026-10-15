@@ -11,6 +11,7 @@ use craft\db\ActiveRecord;
  * @property string      $tokenPrefix
  * @property int         $userId
  * @property string      $scope
+ * @property null|int    $grantId
  * @property null|string $sections
  * @property null|string $expiryDate
  * @property null|string $lastUsedAt
@@ -20,6 +21,12 @@ class TokenRecord extends ActiveRecord
     public static function tableName(): string
     {
         return '{{%craftmcp_tokens}}';
+    }
+
+    /** True for an access token issued through the OAuth connector. */
+    public function isOAuth(): bool
+    {
+        return $this->grantId !== null;
     }
 
     /**

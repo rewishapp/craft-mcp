@@ -11,6 +11,8 @@ Entry writes are drafts until you say otherwise.
 
 Drafts show up under **Agent drafts** and in `list_drafts`, with a control panel link. `publish_entry` applies a draft. `delete_entry` moves an entry to the trash, where it can be restored.
 
+Entry write tools also return `previewUrl` when **Include preview URLs on entry writes** is on (default): a Craft preview-token link that renders the draft as saved, without a login, on the section’s first preview target (or the entry URL). It is `null` for sections without URLs. Lifetime follows Craft’s preview tokens unless `previewTokenDuration` is set. A failing preview-target listener never fails the write — only the link is dropped.
+
 `update_entry` accepts `expectedDateUpdated`. Pass the `dateUpdated` you last read. If someone else saved the entry since then, the write is refused.
 
 `duplicate_entry` makes an unpublished draft. `copy_entry_to_site` copies field values onto another site as a draft. It does not translate them. `create_nested_entry` adds one Matrix block. The owner is drafted first when write mode is draft.

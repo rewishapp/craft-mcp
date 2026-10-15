@@ -7,8 +7,10 @@ use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\services\Gc;
 use craft\services\UserPermissions;
 use craft\web\UrlManager;
+use rewish\craft\mcp\http\oauth\RecordOAuthStore;
 use rewish\craft\mcp\models\Settings;
 use yii\base\Event;
 
@@ -22,7 +24,7 @@ class Mcp extends BasePlugin
 
     public const EVENT_REGISTER_FIELD_TRANSLATORS = 'registerFieldTranslators';
 
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.1.0';
 
     public bool $hasCpSection = true;
 
@@ -33,11 +35,16 @@ class Mcp extends BasePlugin
         parent::init();
 
         \Craft::setAlias('@craft-mcp', $this->getBasePath());
-        $this->controllerNamespace = 'rewish\craft\mcp\controllers';
+        if (\Craft::$app instanceof \craft\console\Application) {
+            $this->controllerNamespace = 'rewish\craft\mcp\console\controllers';
+        } else {
+            $this->controllerNamespace = 'rewish\craft\mcp\controllers';
+        }
 
         $this->registerPermissions();
         $this->registerCpRoutes();
         $this->registerHttpRoute();
+        $this->registerOAuthGarbageCollection();
     }
 
     public static function settings(): Settings
@@ -111,6 +118,18 @@ class Mcp extends BasePlugin
             $event->rules['craft-mcp/activity'] = 'craft-mcp/cp/activity';
             $event->rules['craft-mcp/setup'] = 'craft-mcp/cp/setup';
             $event->rules['craft-mcp/settings'] = 'craft-mcp/cp/settings';
+
+            $settings = self::settings();
+            if ($settings->httpTransport && $settings->oauth) {
+                $event->rules['craft-mcp/connect'] = 'craft-mcp/oauth-consent/index';
+            }
+
+            // Headless CP host (empty cpTrigger): OAuth discovery must answer on the same host.
+            if ($settings->httpTransport && $settings->enabled && $settings->oauth && \Craft::$app->getConfig()->getGeneral()->cpTrigger === '') {
+                foreach (self::oauthSiteRules($settings) as $pattern => $route) {
+                    $event->rules[$pattern] = $route;
+                }
+            }
         });
     }
 
@@ -124,11 +143,45 @@ class Mcp extends BasePlugin
                     $path = trim($settings->httpPath, '/');
                     unset($event->rules[$path]);
                     $event->rules[$path] = 'craft-mcp/http/handle';
+                    if ($settings->oauth) {
+                        foreach (self::oauthSiteRules($settings) as $pattern => $route) {
+                            $event->rules[$pattern] = $route;
+                        }
+                    }
                 }
                 if ($settings->publishServerCard) {
                     $event->rules['.well-known/mcp/server-card.json'] = 'craft-mcp/http/card';
                 }
             });
+        });
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function oauthSiteRules(Settings $settings): array
+    {
+        $path = trim($settings->httpPath, '/');
+
+        return [
+            '.well-known/oauth-protected-resource' => 'craft-mcp/oauth/protected-resource',
+            '.well-known/oauth-protected-resource/'.$path => 'craft-mcp/oauth/protected-resource',
+            '.well-known/oauth-authorization-server' => 'craft-mcp/oauth/authorization-server',
+            '.well-known/oauth-authorization-server/'.$path => 'craft-mcp/oauth/authorization-server',
+            $path.'/oauth/register' => 'craft-mcp/oauth/register',
+            $path.'/oauth/token' => 'craft-mcp/oauth/token',
+        ];
+    }
+
+    private function registerOAuthGarbageCollection(): void
+    {
+        Event::on(Gc::class, Gc::EVENT_RUN, static function (): void {
+            if (!self::settings()->oauth) {
+                return;
+            }
+
+            $now = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+            (new RecordOAuthStore())->collectGarbage($now, $now->modify('-30 days'));
         });
     }
 }

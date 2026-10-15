@@ -25,11 +25,12 @@ final class EntryTools
         private readonly EntryWriter $writer = new EntryWriter(),
     ) {}
 
-    #[McpTool(name: 'list_entries', description: 'List entries. Relations come back as natural keys. Filter by section, type, status, site, search, slug, or author username.', annotations: new ToolAnnotations(readOnlyHint: true, idempotentHint: true))]
+    #[McpTool(name: 'list_entries', description: 'List entries. Relations come back as natural keys. Filter by section, type, status, site, search, slug, or author username. Omit status (or pass "any") to include every status (same as the control panel Entries index); pass status: "live" for live only.', annotations: new ToolAnnotations(readOnlyHint: true, idempotentHint: true))]
     #[ToolMeta(category: 'content')]
     public function listEntries(
         ?string $section = null,
         ?string $type = null,
+        #[Schema(description: 'Entry status: live, pending, expired, disabled, or "any". Omitted lists every status.')]
         ?string $status = null,
         ?string $site = null,
         ?string $search = null,
@@ -50,11 +51,12 @@ final class EntryTools
         });
     }
 
-    #[McpTool(name: 'count_entries', description: 'Count entries with the same filters as list_entries. Optional groupBy: status, section, type, or site.', annotations: new ToolAnnotations(readOnlyHint: true, idempotentHint: true))]
+    #[McpTool(name: 'count_entries', description: 'Count entries with the same filters as list_entries. Optional groupBy: status, section, type, or site. Omit status (or pass "any") to count every status.', annotations: new ToolAnnotations(readOnlyHint: true, idempotentHint: true))]
     #[ToolMeta(category: 'content')]
     public function countEntries(
         ?string $section = null,
         ?string $type = null,
+        #[Schema(description: 'Entry status: live, pending, expired, disabled, or "any". Omitted counts every status.')]
         ?string $status = null,
         ?string $site = null,
         ?string $search = null,
@@ -272,9 +274,9 @@ final class EntryTools
         if ($type) {
             $query->type($type);
         }
-        if ($status) {
-            $query->status($status);
-        }
+        // Omit status or "any" → every status (align with count_entries / CP Entries index).
+        // Pass status: "live" for the previous live-only default.
+        $query->status($status === null || $status === '' || $status === 'any' ? null : $status);
         if ($site) {
             $query->site($site);
         }

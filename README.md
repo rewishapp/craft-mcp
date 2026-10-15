@@ -15,13 +15,13 @@ PHP: 8.2+
 ## Install
 
 ```bash
-composer require "rewi.sh/craft-mcp:^1.0.0" -w && php craft plugin/install craft-mcp
+composer require rewi.sh/craft-mcp -w && php craft plugin/install craft-mcp
 ```
 
 With DDEV:
 
 ```bash
-ddev composer require "rewi.sh/craft-mcp:^1.0.0" -w && ddev craft plugin/install craft-mcp
+ddev composer require rewi.sh/craft-mcp -w && ddev craft plugin/install craft-mcp
 ```
 
 Local path (this repo next to your Craft project):
@@ -46,7 +46,13 @@ return [
 
 ## Connect Cursor, Claude Code, Codex, or other
 
-The Setup screen copies a stdio config that points at `bin/mcp-server`. For a remote client, turn on HTTP and create a token. The default endpoint path is `mcp`.
+Generate local client config:
+
+```bash
+php craft craft-mcp/install
+```
+
+That writes `.mcp.json` (Claude Code) and `.cursor/mcp.json` by default. Codex (`.codex/config.toml`) is offered interactively but not preselected. For a remote client, turn on HTTP, create a token, and paste the Claude Code `.mcp.json` HTTP block (`type: http`). Or turn on the **OAuth connector** so Claude web/Desktop/mobile can add the MCP URL under Connectors. Claude Desktop’s local config file is for local servers only — use the connector, Claude Code, Cursor, or Codex for a remote Craft site.
 
 ## Scopes
 

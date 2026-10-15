@@ -39,6 +39,21 @@
           { label: 'Live', value: 'live' },
         ],
       }) }}
+      {{ forms.lightswitchField({
+        label: 'Include preview URLs on entry writes',
+        instructions: 'Adds a Craft preview-token link when the section has a URL. Null for sections without URLs.',
+        name: 'settings[previewUrls]',
+        on: settings.previewUrls,
+      }) }}
+      {{ forms.textField({
+        label: 'Preview token lifetime in seconds',
+        instructions: 'Leave empty to use Craft’s own preview token duration.',
+        name: 'settings[previewTokenDuration]',
+        value: settings.previewTokenDuration,
+        type: 'number',
+        min: 60,
+        placeholder: 'Craft default',
+      }) }}
       {{ forms.checkboxSelectField({
         label: 'Scopes that cannot be minted',
         name: 'settings[disabledScopes]',
@@ -82,7 +97,7 @@
       }) }}
       {{ forms.textareaField({
         label: 'Allowed IPs',
-        instructions: 'One address per line. Leave empty to allow any IP.',
+        instructions: 'One address or CIDR range per line (IPv4/IPv6). Leave empty to allow any IP. Example: 160.79.104.0/21',
         name: 'settings[allowedIps]',
         value: settings.allowedIps|join('\n'),
         rows: 4,
@@ -91,6 +106,34 @@
         label: 'Publish /.well-known/mcp/server-card.json',
         name: 'settings[publishServerCard]',
         on: settings.publishServerCard,
+      }) }}
+      {{ forms.lightswitchField({
+        label: 'OAuth connector',
+        instructions: 'Lets Claude (web, Desktop, mobile) and other OAuth clients connect by pasting the MCP URL. Requires HTTP transport. Off by default.',
+        name: 'settings[oauth]',
+        on: settings.oauth,
+      }) }}
+      {{ forms.textareaField({
+        label: 'OAuth redirect URI allowlist',
+        instructions: 'One URL per line. Only these callbacks may be registered. Loopback (localhost / 127.0.0.1) matches any port. Defaults cover Claude apps and Claude Code.',
+        name: 'settings[oauthRedirectUris]',
+        value: settings.oauthRedirectUris|join('\n'),
+        rows: 4,
+      }) }}
+      {{ forms.textField({
+        label: 'OAuth access token lifetime (seconds)',
+        name: 'settings[oauthAccessTokenTtl]',
+        value: settings.oauthAccessTokenTtl,
+        type: 'number',
+        min: 60,
+      }) }}
+      {{ forms.textField({
+        label: 'OAuth refresh token lifetime (seconds)',
+        instructions: 'Each refresh replaces the previous token. Reusing an old one revokes the connection.',
+        name: 'settings[oauthRefreshTokenTtl]',
+        value: settings.oauthRefreshTokenTtl,
+        type: 'number',
+        min: 3600,
       }) }}
     </section>
 

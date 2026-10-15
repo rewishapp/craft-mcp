@@ -19,7 +19,7 @@ Call `list_mcp_tools` to see the full catalog, including tools the current conne
 | `list_globals` | Full | |
 | `create_user` | Full | Yes |
 
-`list_entries` filters by section, entry type, status, site, search, slug, or author username. Relations come back as natural keys. `get_entry` takes an id, or a section and slug, in the same field shape `create_entry` accepts.
+`list_entries` filters by section, entry type, status, site, search, slug, or author username. Omit `status` (or pass `"any"`) to include every status (same as the control panel Entries index and as `count_entries`). Pass `status: "live"` for live entries only. Each row carries its own `status`. Relations come back as natural keys. `get_entry` takes an id, or a section and slug, in the same field shape `create_entry` accepts.
 
 ## Sites
 

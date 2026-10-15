@@ -16,6 +16,14 @@ enum Scope: string
         return array_column(self::cases(), 'value');
     }
 
+    /**
+     * @param list<string> $disabledScopes
+     */
+    public function isDisabled(array $disabledScopes): bool
+    {
+        return \in_array($this->value, $disabledScopes, true);
+    }
+
     public static function try(string $value): ?self
     {
         return self::tryFrom($value);

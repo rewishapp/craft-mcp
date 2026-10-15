@@ -1,0 +1,62 @@
+{% import '_includes/forms' as forms %}
+
+{% set scopeHelp = {
+    readonly: 'Read content, settings and structure. Cannot change anything.',
+    content: 'Read, and write entries as drafts or live, within your own permissions.',
+    full: 'Everything, including code execution and database queries. Only grant this to an app you fully trust.',
+} %}
+
+<div class="readable">
+    <h2>{{ request.client.name }} wants to connect to this site</h2>
+
+    <p>
+        It will act as you, {{ user.friendlyName }}, with the access you choose below. After you approve, your browser goes back to {{ request.redirectHost() }}.
+    </p>
+
+    <p class="light">
+        The app named itself "{{ request.client.name }}"; that name is its own claim. What you can trust is where it sends you: {{ request.redirectHost() }}.
+    </p>
+
+    {% if scopes is empty %}
+        <p class="error">You do not have permission to connect apps, or none of the scopes this app asked for is available to you. Ask an administrator for the "Manage own MCP tokens" permission.</p>
+
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {{ actionInput('craft-mcp/oauth-consent/deny') }}
+            {% for key, value in params %}
+                {{ hiddenInput('oauth[' ~ key ~ ']', value) }}
+            {% endfor %}
+            <button type="submit" class="btn">Go back</button>
+        </form>
+    {% else %}
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            {% for key, value in params %}
+                {{ hiddenInput('oauth[' ~ key ~ ']', value) }}
+            {% endfor %}
+
+            <fieldset>
+                <legend class="h3">Access</legend>
+                {% for scope in scopes %}
+                    <div class="field">
+                        {{ forms.radio({
+                            name: 'scope',
+                            value: scope.value,
+                            label: scope.value|capitalize,
+                            checked: selected is not null and selected.value == scope.value,
+                            id: 'scope-' ~ scope.value,
+                        }) }}
+                        <p class="light smalltext">{{ scopeHelp[scope.value] }}</p>
+                    </div>
+                {% endfor %}
+            </fieldset>
+
+            <div class="buttons">
+                {{ tag('button', {type: 'submit', class: ['btn', 'submit'], text: 'Approve', formaction: actionUrl('craft-mcp/oauth-consent/approve')}) }}
+                {{ tag('button', {type: 'submit', class: ['btn'], text: 'Deny', formaction: actionUrl('craft-mcp/oauth-consent/deny')}) }}
+            </div>
+        </form>
+
+        <p class="light">You can disconnect it at any time on the Tokens screen under MCP - All in one.</p>
+    {% endif %}
+</div>

@@ -3,13 +3,13 @@
 Requirements: Craft CMS 5.0+ or 6.0+, PHP 8.2+.
 
 ```bash
-composer require "rewi.sh/craft-mcp:^1.0.0" -w && php craft plugin/install craft-mcp
+composer require "rewi.sh/craft-mcp:^1.1.0" -w && php craft plugin/install craft-mcp
 ```
 
 With DDEV:
 
 ```bash
-ddev composer require "rewi.sh/craft-mcp:^1.0.0" -w && ddev craft plugin/install craft-mcp
+ddev composer require "rewi.sh/craft-mcp:^1.1.0" -w && ddev craft plugin/install craft-mcp
 ```
 
 Local path (this repo next to your Craft project):
@@ -22,6 +22,22 @@ composer require rewi.sh/craft-mcp:@dev -w && php craft plugin/install craft-mcp
 Change the path so it points at this folder.
 
 After install, open **MCP - All in one** in the control panel sidebar.
+
+## Client config wizard
+
+```bash
+php craft craft-mcp/install
+```
+
+Options:
+
+```bash
+php craft craft-mcp/install --environment=ddev
+php craft craft-mcp/install --serverName=my-site
+php craft craft-mcp/install --interactive=0
+```
+
+Interactive mode can also write Codex’s `.codex/config.toml` (replacing only that server’s table). Non-interactive runs write Claude Code and Cursor only.
 
 ## Turn the server on
 

@@ -17,10 +17,10 @@ Package `rewi.sh/craft-mcp`. Handle `craft-mcp`. Craft 5.0+ and 6.0+. PHP 8.2+.
 ## What you get
 
 - A sidebar in the control panel: Dashboard, Agent drafts, Tools, Tokens, Activity, Setup, and Settings.
-- Stdio for Cursor, Claude Code, Codex, and any other client on the same machine.
-- HTTP at `/mcp` for a client that is not on this machine. Turn it on, then create a bearer token.
+- Stdio for Cursor, Claude Code, Codex, and any other client on the same machine (`php craft craft-mcp/install`).
+- HTTP at `/mcp` for a client that is not on this machine. Turn it on, then create a bearer token (Claude Code `.mcp.json` with `type: http`), or turn on the OAuth connector for Claude apps.
 - Read tools for entries, schema, assets, sites, logs, and GraphQL queries.
-- Write tools that save drafts first, so a person can publish them.
+- Write tools that save drafts first, with optional Craft `previewUrl` links for review.
 - Commerce, Freeform, and Calendar tools when those plugins are installed.
 
 In production the server starts off. Turn it on in Settings, or in `config/craft-mcp.php`, before a client can connect.

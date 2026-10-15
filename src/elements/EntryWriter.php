@@ -17,6 +17,7 @@ use craft\models\Site;
 use Mcp\Exception\ToolCallException;
 use rewish\craft\mcp\Mcp;
 use rewish\craft\mcp\support\CallContext;
+use rewish\craft\mcp\support\PreviewLinks;
 
 final class EntryWriter
 {
@@ -61,11 +62,7 @@ final class EntryWriter
             throw new ToolCallException($this->errors($entry));
         }
 
-        return [
-            'success' => true,
-            'draft' => $entry->getIsDraft(),
-            'entry' => $this->reader->summarize($entry),
-        ];
+        return $this->writeResult($entry);
     }
 
     /**
@@ -98,11 +95,7 @@ final class EntryWriter
             throw new ToolCallException($this->errors($target));
         }
 
-        return [
-            'success' => true,
-            'draft' => $target->getIsDraft(),
-            'entry' => $this->reader->summarize($target),
-        ];
+        return $this->writeResult($target);
     }
 
     /**
@@ -186,7 +179,7 @@ final class EntryWriter
             throw new ToolCallException($this->errors($copy));
         }
 
-        return ['success' => true, 'entry' => $this->reader->summarize($copy)];
+        return $this->writeResult($copy);
     }
 
     /**
@@ -222,7 +215,7 @@ final class EntryWriter
             throw new ToolCallException($this->errors($draft));
         }
 
-        return ['success' => true, 'entry' => $this->reader->summarize($draft)];
+        return $this->writeResult($draft);
     }
 
     /**
@@ -270,6 +263,7 @@ final class EntryWriter
         return [
             'success' => true,
             'ownerId' => $target->id,
+            'previewUrl' => PreviewLinks::forEntry($target),
             'block' => [
                 'id' => $block->id,
                 'type' => $typeHandle,
@@ -298,7 +292,25 @@ final class EntryWriter
             throw new ToolCallException($this->errors($block));
         }
 
-        return ['success' => true, 'id' => $block->id, 'sortOrder' => $block->sortOrder];
+        return [
+            'success' => true,
+            'id' => $block->id,
+            'sortOrder' => $block->sortOrder,
+            'previewUrl' => $owner instanceof Entry ? PreviewLinks::forEntry($owner) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function writeResult(Entry $entry): array
+    {
+        return [
+            'success' => true,
+            'draft' => $entry->getIsDraft(),
+            'entry' => $this->reader->summarize($entry),
+            'previewUrl' => PreviewLinks::forEntry($entry),
+        ];
     }
 
     /**

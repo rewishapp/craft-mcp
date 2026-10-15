@@ -2,7 +2,15 @@
 
 Use stdio when Cursor, Claude Code, Codex, or another client runs on the same machine as Craft. Use HTTP when the client is somewhere else.
 
-The Setup screen in the control panel prints both blocks.
+## Wizard
+
+```bash
+php craft craft-mcp/install
+```
+
+Writes project-level config for the clients you pick. Non-interactive mode configures Claude Code and Cursor. Codex is available interactively (or say yes when prompted) and only replaces its own `[mcp_servers.<name>]` table in `.codex/config.toml`. The wizard also prints a `codex mcp add …` command for user-level Codex config.
+
+The Setup screen in the control panel prints both stdio and HTTP blocks too.
 
 ## Stdio
 
@@ -61,10 +69,13 @@ Stdio has no token. It runs as local trust, with the same reach as the Craft con
 2. Tokens → create a token. The secret is shown once, with a config block you can paste.
 3. Paste that block into the client.
 
+Claude Code `.mcp.json` (also fine for Cursor and Codex):
+
 ```json
 {
   "mcpServers": {
     "craft-mcp": {
+      "type": "http",
       "url": "https://your-site.example/mcp",
       "headers": {
         "Authorization": "Bearer cmcp_…"
@@ -74,11 +85,27 @@ Stdio has no token. It runs as local trust, with the same reach as the Craft con
 }
 ```
 
+Claude Desktop’s config file starts **local** servers only. Do not put a remote `url` there. Use Claude Code, Cursor, Codex, or a custom connector for a remote Craft site.
+
 A missing or unknown bearer token gets `401`. The token’s Craft user, scope, and section limit apply to every call.
 
 If another plugin also registers `/mcp`, this plugin replaces that route while HTTP transport is on. Turn HTTP off here and the other plugin’s route is left as it was.
 
 Set **Public base URL** when clients should call a different host than the control panel.
+
+## Claude connector (OAuth)
+
+With **HTTP transport** and **OAuth connector** on, Claude (web, Desktop, mobile) can add the site under Customize → Connectors by its MCP URL. The user logs in to the control panel, picks a scope, and approves. No hand-minted bearer token is required.
+
+Production checklist:
+
+1. **Server enabled** — otherwise the endpoint answers that HTTP is not enabled.
+2. **`httpPublicUrl`** — set this on a headless install so OAuth discovery and redirects point at Craft, not the frontend.
+3. Connector URL must match the advertised resource exactly (usually `https://cms.example.com/mcp`).
+
+Consent lives at **MCP - All in one → Connect** (`/admin/craft-mcp/connect`). Connected apps appear on the Tokens screen; Disconnect revokes the grant immediately. Hand-minted tokens keep working when OAuth is off or unused.
+
+For Anthropic’s egress, add `160.79.104.0/21` to **Allowed IPs** if that list is not empty.
 
 ## After you connect
 

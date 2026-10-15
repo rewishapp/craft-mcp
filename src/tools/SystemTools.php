@@ -2,12 +2,11 @@
 
 namespace rewish\craft\mcp\tools;
 
-use craft\console\Application;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Schema\ToolAnnotations;
 use rewish\craft\mcp\attributes\ToolMeta;
 use rewish\craft\mcp\services\Activity;
-use yii\console\controllers\HelpController;
+use rewish\craft\mcp\support\ConsoleCommands;
 
 final class SystemTools
 {
@@ -107,24 +106,30 @@ final class SystemTools
         });
     }
 
-    #[McpTool(name: 'list_console_commands', description: 'List Craft console command ids. Complete when the server is running over stdio.', annotations: new ToolAnnotations(readOnlyHint: true, idempotentHint: true))]
+    #[McpTool(name: 'list_console_commands', description: 'List Craft console command ids. Complete when the server is running over stdio. Unavailable over HTTP.', annotations: new ToolAnnotations(readOnlyHint: true, idempotentHint: true))]
     #[ToolMeta(category: 'system')]
     public function listConsoleCommands(): array
     {
         return Activity::run('list_console_commands', static function () {
-            if (!\Craft::$app instanceof Application) {
+            // Over HTTP Craft loads web controllers, so a count of 0 would read as an install with none.
+            if (!\Craft::$app->getRequest()->getIsConsoleRequest()) {
                 return [
-                    'available' => false,
-                    'note' => 'Connect over stdio to list console commands. HTTP requests do not boot the console application.',
-                    'commands' => [],
+                    'count' => null,
+                    'commands' => null,
+                    'skippedModules' => [],
+                    'unavailable' => 'Console commands can only be listed over stdio. In a web request Craft loads web controllers in place of console ones, so this transport cannot see them. Run `php craft help/list` on the server, or connect over stdio.',
                 ];
             }
 
-            $help = new HelpController('help', \Craft::$app);
-            $commands = $help->getCommands();
-            sort($commands);
+            $help = new ConsoleCommands('help', \Craft::$app);
+            $commands = array_values($help->getCommands());
 
-            return ['available' => true, 'count' => \count($commands), 'commands' => $commands];
+            return [
+                'count' => \count($commands),
+                'commands' => $commands,
+                'skippedModules' => $help->skipped(),
+                'unavailable' => null,
+            ];
         });
     }
 

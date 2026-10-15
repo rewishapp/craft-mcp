@@ -23,15 +23,23 @@ final class Setup
         return $root.'/bin/mcp-server';
     }
 
-    public function endpointUrl(): string
+    /**
+     * The site origin the MCP endpoint and OAuth issuer live under, without a
+     * trailing slash: httpPublicUrl when set, otherwise the primary site.
+     */
+    public function baseUrl(): string
     {
         $settings = Mcp::settings();
-        $path = trim($settings->httpPath, '/');
         if ($settings->httpPublicUrl) {
-            return rtrim($settings->httpPublicUrl, '/').'/'.$path;
+            return rtrim($settings->httpPublicUrl, '/');
         }
 
-        return rtrim(\Craft::$app->getSites()->getPrimarySite()->getBaseUrl() ?? '', '/').'/'.$path;
+        return rtrim(\Craft::$app->getSites()->getPrimarySite()->getBaseUrl() ?? '', '/');
+    }
+
+    public function endpointUrl(): string
+    {
+        return $this->baseUrl().'/'.trim(Mcp::settings()->httpPath, '/');
     }
 
     public function stdioSnippet(): string
@@ -48,11 +56,15 @@ final class Setup
         return json_encode($payload, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES) ?: '';
     }
 
+    /**
+     * Claude Code `.mcp.json` block (`type: http`). Cursor and Codex accept the same shape with url + headers.
+     */
     public function httpSnippet(string $token = 'YOUR_TOKEN'): string
     {
         $payload = [
             'mcpServers' => [
                 'craft-mcp' => [
+                    'type' => 'http',
                     'url' => $this->endpointUrl(),
                     'headers' => [
                         'Authorization' => 'Bearer '.$token,

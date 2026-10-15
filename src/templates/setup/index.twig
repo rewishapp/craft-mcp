@@ -5,7 +5,7 @@
 {% block content %}
   {% include "craft-mcp/_includes/ui" %}
   <div class="mcp">
-    <p class="mcp-intro">Paste the stdio block into Cursor, Claude Code, Codex, or another client. Use HTTP when the client is not on this machine.</p>
+    <p class="mcp-intro">Paste the stdio block into Cursor, Claude Code, Codex, or another local client. Use the HTTP block (Claude Code <code>.mcp.json</code> shape) when the client is not on this machine. Claude Desktop cannot take a remote URL in its config file — use a custom connector or Claude Code / Cursor / Codex instead.</p>
 
     <section class="pane mcp-card">
       <div class="mcp-card-head">

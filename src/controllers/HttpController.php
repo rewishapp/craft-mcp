@@ -10,12 +10,17 @@ use Mcp\Server\Transport\Http\Middleware\ProtocolVersionMiddleware;
 use Mcp\Server\Transport\StreamableHttpTransport;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use rewish\craft\mcp\http\DbSessionStore;
+use rewish\craft\mcp\http\oauth\OAuthConfig;
+use rewish\craft\mcp\http\oauth\RecordOAuthStore;
 use rewish\craft\mcp\http\RequestBridge;
 use rewish\craft\mcp\Mcp;
+use rewish\craft\mcp\models\Settings;
+use rewish\craft\mcp\records\TokenRecord;
 use rewish\craft\mcp\services\ServerFactory;
 use rewish\craft\mcp\services\Setup;
 use rewish\craft\mcp\services\Tokens;
 use rewish\craft\mcp\support\CallContext;
+use rewish\craft\mcp\support\IpAllowlist;
 
 class HttpController extends Controller
 {
@@ -30,7 +35,7 @@ class HttpController extends Controller
             return $this->fail(404, 'MCP HTTP transport is not enabled');
         }
 
-        if ($settings->allowedIps !== [] && !\in_array($this->request->getUserIP(), $settings->allowedIps, true)) {
+        if (!IpAllowlist::allows($this->request->getUserIP(), $settings->allowedIps)) {
             return $this->fail(403, 'Client IP is not allowed');
         }
 
@@ -44,18 +49,20 @@ class HttpController extends Controller
 
         $token = $this->request->getBearerToken();
         if ($token === null || $token === '') {
-            $this->response->getHeaders()->set('WWW-Authenticate', 'Bearer');
+            $this->response->getHeaders()->set('WWW-Authenticate', $this->challenge($settings));
 
             return $this->fail(401, 'Invalid or missing bearer token');
         }
 
         $record = (new Tokens())->authenticate($token);
-        if ($record === null) {
+        if ($record === null || !$this->oauthGrantLive($record)) {
+            $this->response->getHeaders()->set('WWW-Authenticate', $this->challenge($settings));
+
             return $this->fail(401, 'Invalid or missing bearer token');
         }
 
         $user = \Craft::$app->getUsers()->getUserById($record->userId);
-        if ($user === null || $user->suspended) {
+        if ($user === null || $user->suspended || !$user->enabled) {
             return $this->fail(401, 'This token’s user cannot sign in');
         }
 
@@ -142,6 +149,30 @@ class HttpController extends Controller
         }
 
         return array_values(array_unique($hosts));
+    }
+
+    private function challenge(Settings $settings): string
+    {
+        if (!$settings->oauth) {
+            return 'Bearer';
+        }
+
+        return sprintf('Bearer resource_metadata="%s"', OAuthConfig::current()->protectedResourceMetadataUrl());
+    }
+
+    /**
+     * An app’s token lives only as long as its grant: checked per request so
+     * Disconnect takes effect on the next call even if a refresh raced it.
+     */
+    private function oauthGrantLive(TokenRecord $record): bool
+    {
+        if (!$record->isOAuth()) {
+            return true;
+        }
+
+        $grant = (new RecordOAuthStore())->findGrant((int) $record->grantId);
+
+        return $grant !== null && !$grant->isRevoked();
     }
 
     private function fail(int $status, string $message): Response

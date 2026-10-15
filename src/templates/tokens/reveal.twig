@@ -19,7 +19,8 @@
       {% if showSnippet and httpSnippet %}
         <section class="pane mcp-card">
           <div class="mcp-card-head">
-            <h2>Cursor, Claude Code, Codex, or other</h2>
+            <h2>Claude Code <code>.mcp.json</code></h2>
+            <p class="mcp-muted" style="margin:0">Also works for Cursor and Codex over HTTP. Claude Desktop starts local servers only — add a remote site as a custom connector, not in <code>claude_desktop_config.json</code>.</p>
             <button class="btn small" type="button" data-mcp-copy="#mcp-http">Copy config</button>
           </div>
           <div class="mcp-card-body">

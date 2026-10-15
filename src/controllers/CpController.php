@@ -3,8 +3,10 @@
 namespace rewish\craft\mcp\controllers;
 
 use craft\elements\Entry;
-use craft\helpers\DateTimeHelper;
 use craft\web\Controller;
+use rewish\craft\mcp\http\oauth\ConnectedApps;
+use rewish\craft\mcp\http\oauth\Grants;
+use rewish\craft\mcp\http\oauth\RecordOAuthStore;
 use rewish\craft\mcp\Mcp;
 use rewish\craft\mcp\records\ActivityRecord;
 use rewish\craft\mcp\records\TokenRecord;
@@ -28,7 +30,7 @@ class CpController extends Controller
             'settings' => $settings,
             'toolCount' => \count(array_filter($tools, static fn (array $tool) => $tool['exposed'])),
             'toolTotal' => \count($tools),
-            'tokenCount' => (int) TokenRecord::find()->count(),
+            'tokenCount' => (int) TokenRecord::find()->where(['grantId' => null])->count(),
             'callsToday' => $this->callsToday(),
             'draftCount' => (int) Entry::find()->drafts()->status(null)->count(),
             'activity' => $this->activity(8),
@@ -113,12 +115,57 @@ class CpController extends Controller
             $users[$token->id] = $owner?->username ?? 'removed user';
         }
 
+        $settings = Mcp::settings();
+        $apps = null;
+        $appOwners = [];
+        if ($settings->httpTransport && $settings->oauth) {
+            $apps = (new ConnectedApps(new RecordOAuthStore()))->rows($all ? null : $user?->id);
+            foreach ($apps as $app) {
+                if (!isset($appOwners[$app['userId']])) {
+                    $owner = \Craft::$app->getUsers()->getUserById($app['userId']);
+                    $appOwners[$app['userId']] = $owner?->username ?? 'removed user';
+                }
+            }
+        }
+
         return $this->renderTemplate('craft-mcp/tokens/index', [
             'tokens' => $tokens,
             'owners' => $users,
             'sections' => \Craft::$app->getEntries()->getAllSections(),
             'isAdmin' => (bool) $user?->admin,
+            'apps' => $apps,
+            'appOwners' => $appOwners,
+            'showAppUser' => (bool) $all,
         ]);
+    }
+
+    public function actionDisconnectApp(): Response
+    {
+        $this->requirePostRequest();
+        $this->requirePermission('craft-mcp:manageTokens');
+        $user = \Craft::$app->getUser()->getIdentity();
+        if ($user === null) {
+            throw new ForbiddenHttpException('Sign in required.');
+        }
+
+        $grantId = (int) $this->request->getRequiredBodyParam('id');
+        $store = new RecordOAuthStore();
+        $grant = $store->findGrant($grantId);
+        if ($grant === null || $grant->isRevoked()) {
+            $this->setFailFlash('That connection is already gone.');
+
+            return $this->redirect('craft-mcp/tokens');
+        }
+
+        $owns = $grant->userId === (int) $user->id;
+        if (!$owns && !$user->can('craft-mcp:manageAllTokens')) {
+            throw new ForbiddenHttpException('You cannot disconnect someone else’s app.');
+        }
+
+        (new Grants($store, new Tokens()))->revoke($grantId);
+        $this->setSuccessFlash('App disconnected.');
+
+        return $this->redirect('craft-mcp/tokens');
     }
 
     public function actionCreateToken(): Response
@@ -143,8 +190,9 @@ class CpController extends Controller
 
         $expiry = null;
         if (is_numeric($days) && (int) $days > 0) {
-            $date = DateTimeHelper::toDateTime(strtotime('+'.(int) $days.' days'));
-            $expiry = $date instanceof \DateTimeInterface ? $date->format('Y-m-d H:i:s') : null;
+            $expiry = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+                ->modify('+'.(int) $days.' days')
+                ->format('Y-m-d H:i:s');
         }
 
         $issued = $tokens->issue($user->id, $name !== '' ? $name : 'Token', $scope, $expiry, $sections);
@@ -222,12 +270,21 @@ class CpController extends Controller
         $this->requirePostRequest();
         $this->requirePermission('craft-mcp:manageSettings');
         $posted = (array) $this->request->getBodyParam('settings', []);
-        $bools = ['enabled', 'enableDangerousTools', 'enableTinker', 'httpTransport', 'showClientConfigSnippet', 'publishServerCard'];
+        $bools = ['enabled', 'enableDangerousTools', 'enableTinker', 'httpTransport', 'oauth', 'showClientConfigSnippet', 'publishServerCard', 'previewUrls'];
         foreach ($bools as $key) {
             $posted[$key] = !empty($posted[$key]);
         }
         $posted['allowedIps'] = $this->lines($posted['allowedIps'] ?? '');
+        $posted['oauthRedirectUris'] = $this->lines($posted['oauthRedirectUris'] ?? '');
         $posted['disabledScopes'] = array_values(array_filter((array) ($posted['disabledScopes'] ?? [])));
+        $duration = $posted['previewTokenDuration'] ?? null;
+        $posted['previewTokenDuration'] = is_numeric($duration) && (int) $duration > 0 ? (int) $duration : null;
+        if (isset($posted['oauthAccessTokenTtl']) && is_numeric($posted['oauthAccessTokenTtl'])) {
+            $posted['oauthAccessTokenTtl'] = (int) $posted['oauthAccessTokenTtl'];
+        }
+        if (isset($posted['oauthRefreshTokenTtl']) && is_numeric($posted['oauthRefreshTokenTtl'])) {
+            $posted['oauthRefreshTokenTtl'] = (int) $posted['oauthRefreshTokenTtl'];
+        }
         if ($this->persist($posted)) {
             $this->setSuccessFlash('Settings saved.');
         }

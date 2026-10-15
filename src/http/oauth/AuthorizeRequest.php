@@ -19,8 +19,7 @@ final readonly class AuthorizeRequest
         public ?string $state,
         public string $codeChallenge,
         public array $requestedScopes,
-    ) {
-    }
+    ) {}
 
     /** The host the user is sending their consent to, shown on the consent screen. */
     public function redirectHost(): string

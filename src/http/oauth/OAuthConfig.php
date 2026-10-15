@@ -27,8 +27,7 @@ final readonly class OAuthConfig
         public int $accessTokenTtl = 3600,
         public int $refreshTokenTtl = 2592000,
         public array $disabledScopes = [],
-    ) {
-    }
+    ) {}
 
     public static function current(): self
     {

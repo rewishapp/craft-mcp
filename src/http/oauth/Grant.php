@@ -18,8 +18,7 @@ final readonly class Grant
         public ?int $id = null,
         public ?\DateTimeImmutable $dateCreated = null,
         public ?\DateTimeImmutable $dateRevoked = null,
-    ) {
-    }
+    ) {}
 
     public function isRevoked(): bool
     {

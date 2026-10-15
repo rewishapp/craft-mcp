@@ -103,7 +103,7 @@ final class TomlConfigWriter
 
     private function quoted(string $value): string
     {
-        $escaped = strtr($value, ['\\' => '\\\\', '"' => '\\"', "\n" => '\\n', "\r" => '\\r', "\t" => '\\t']);
+        $escaped = strtr($value, ['\\' => '\\\\', '"' => '\"', "\n" => '\n', "\r" => '\r', "\t" => '\t']);
 
         return '"'.$escaped.'"';
     }

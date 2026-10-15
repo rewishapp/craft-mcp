@@ -3,6 +3,7 @@
 namespace rewish\craft\mcp\tests;
 
 use PHPUnit\Framework\TestCase;
+use rewish\craft\mcp\http\oauth\OAuthError;
 use rewish\craft\mcp\http\oauth\Pkce;
 use rewish\craft\mcp\http\oauth\RedirectUris;
 
@@ -32,7 +33,7 @@ final class OAuthRedirectUrisTest extends TestCase
         self::assertTrue(Pkce::verify($verifier, $challenge));
         self::assertFalse(Pkce::verify('wrong-verifier-that-is-long-enough-xxxxxx', $challenge));
 
-        $this->expectException(\rewish\craft\mcp\http\oauth\OAuthError::class);
+        $this->expectException(OAuthError::class);
         Pkce::assertChallenge($challenge, 'plain');
     }
 }

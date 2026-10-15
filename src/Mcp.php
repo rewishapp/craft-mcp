@@ -5,6 +5,7 @@ namespace rewish\craft\mcp;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
+use craft\console\Application;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
 use craft\services\Gc;
@@ -35,7 +36,7 @@ class Mcp extends BasePlugin
         parent::init();
 
         \Craft::setAlias('@craft-mcp', $this->getBasePath());
-        if (\Craft::$app instanceof \craft\console\Application) {
+        if (\Craft::$app instanceof Application) {
             $this->controllerNamespace = 'rewish\craft\mcp\console\controllers';
         } else {
             $this->controllerNamespace = 'rewish\craft\mcp\controllers';

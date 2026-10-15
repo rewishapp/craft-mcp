@@ -15,8 +15,7 @@ final readonly class Registration
         private OAuthStore $store,
         private RedirectUris $redirectUris,
         private ?\Closure $now = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @param array<string, mixed> $metadata the client's registration request

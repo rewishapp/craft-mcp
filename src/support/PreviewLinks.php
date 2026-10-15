@@ -30,7 +30,7 @@ final class PreviewLinks
         try {
             return self::mint($entry, $base);
         } catch (\Throwable $e) {
-            \Craft::warning(sprintf('Could not mint a preview link for entry %s: %s', $entry->id, $e->getMessage()), __METHOD__);
+            \Craft::warning(\sprintf('Could not mint a preview link for entry %s: %s', $entry->id, $e->getMessage()), __METHOD__);
 
             return null;
         }
@@ -59,7 +59,7 @@ final class PreviewLinks
         try {
             return $entry->getPreviewTargets();
         } catch (\Throwable $e) {
-            \Craft::warning(sprintf('Preview targets unavailable for entry %s, using its own URL: %s', $entry->id, $e->getMessage()), __METHOD__);
+            \Craft::warning(\sprintf('Preview targets unavailable for entry %s, using its own URL: %s', $entry->id, $e->getMessage()), __METHOD__);
 
             return [];
         }

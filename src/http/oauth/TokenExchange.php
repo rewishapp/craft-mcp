@@ -2,6 +2,7 @@
 
 namespace rewish\craft\mcp\http\oauth;
 
+use rewish\craft\mcp\enums\Scope;
 use rewish\craft\mcp\services\Tokens;
 
 /**
@@ -17,7 +18,7 @@ use rewish\craft\mcp\services\Tokens;
 final readonly class TokenExchange
 {
     /**
-     * @param null|\Closure(int, \rewish\craft\mcp\enums\Scope): bool $mayHold
+     * @param null|\Closure(int, Scope): bool $mayHold
      */
     public function __construct(
         private OAuthStore $store,
@@ -26,8 +27,7 @@ final readonly class TokenExchange
         private OAuthConfig $config,
         private ?\Closure $now = null,
         private ?\Closure $mayHold = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @param array<string, mixed> $params the token request's form fields

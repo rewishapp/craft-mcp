@@ -14,6 +14,5 @@ final readonly class AuthorizationCode
         public string $codeChallenge,
         public \DateTimeImmutable $expiryDate,
         public ?\DateTimeImmutable $dateUsed = null,
-    ) {
-    }
+    ) {}
 }

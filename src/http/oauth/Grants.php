@@ -15,8 +15,7 @@ final readonly class Grants
         private OAuthStore $store,
         private Tokens $tokens,
         private ?\Closure $now = null,
-    ) {
-    }
+    ) {}
 
     public function revoke(int $grantId): void
     {

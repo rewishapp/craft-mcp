@@ -12,6 +12,5 @@ final readonly class RefreshToken
         public int $grantId,
         public \DateTimeImmutable $expiryDate,
         public ?\DateTimeImmutable $dateUsed = null,
-    ) {
-    }
+    ) {}
 }

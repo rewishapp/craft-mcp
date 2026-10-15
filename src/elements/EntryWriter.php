@@ -301,19 +301,6 @@ final class EntryWriter
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    private function writeResult(Entry $entry): array
-    {
-        return [
-            'success' => true,
-            'draft' => $entry->getIsDraft(),
-            'entry' => $this->reader->summarize($entry),
-            'previewUrl' => PreviewLinks::forEntry($entry),
-        ];
-    }
-
-    /**
      * @param array<string, mixed> $fields
      */
     public function applyFields(Entry $entry, array $fields): void
@@ -339,6 +326,19 @@ final class EntryWriter
         if ($values !== []) {
             $entry->setFieldValues($values);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function writeResult(Entry $entry): array
+    {
+        return [
+            'success' => true,
+            'draft' => $entry->getIsDraft(),
+            'entry' => $this->reader->summarize($entry),
+            'previewUrl' => PreviewLinks::forEntry($entry),
+        ];
     }
 
     private function writeValue(FieldInterface $field, mixed $value): mixed

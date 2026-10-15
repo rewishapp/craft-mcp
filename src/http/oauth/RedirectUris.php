@@ -25,9 +25,7 @@ final readonly class RedirectUris
     /**
      * @param list<string> $allowed
      */
-    public function __construct(private array $allowed)
-    {
-    }
+    public function __construct(private array $allowed) {}
 
     public function allows(string $uri): bool
     {

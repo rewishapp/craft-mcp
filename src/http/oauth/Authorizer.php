@@ -21,8 +21,7 @@ final readonly class Authorizer
         private OAuthStore $store,
         private OAuthConfig $config,
         private ?\Closure $now = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @param array<string, mixed> $params the authorization request's query parameters

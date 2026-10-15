@@ -192,7 +192,8 @@ class CpController extends Controller
         if (is_numeric($days) && (int) $days > 0) {
             $expiry = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
                 ->modify('+'.(int) $days.' days')
-                ->format('Y-m-d H:i:s');
+                ->format('Y-m-d H:i:s')
+            ;
         }
 
         $issued = $tokens->issue($user->id, $name !== '' ? $name : 'Token', $scope, $expiry, $sections);

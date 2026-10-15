@@ -157,7 +157,7 @@ class HttpController extends Controller
             return 'Bearer';
         }
 
-        return sprintf('Bearer resource_metadata="%s"', OAuthConfig::current()->protectedResourceMetadataUrl());
+        return \sprintf('Bearer resource_metadata="%s"', OAuthConfig::current()->protectedResourceMetadataUrl());
     }
 
     /**

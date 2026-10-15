@@ -47,7 +47,7 @@ class InstallController extends Controller
 
     public function actionIndex(): int
     {
-        $craftRoot = (string) Craft::getAlias('@root');
+        $craftRoot = (string) \Craft::getAlias('@root');
         $detector = new EnvironmentDetector($craftRoot);
         $jsonWriter = new JsonConfigWriter();
         $tomlWriter = new TomlConfigWriter();
@@ -60,7 +60,7 @@ class InstallController extends Controller
         $craftSubdirectory = null;
 
         if ($this->interactive) {
-            $this->stdout("Craft subdirectory (blank if Craft is the project root): ");
+            $this->stdout('Craft subdirectory (blank if Craft is the project root): ');
             $input = trim((string) fgets(\STDIN));
             $input = trim($input, '/ ');
             if ($input !== '') {
@@ -83,6 +83,7 @@ class InstallController extends Controller
         $this->stdout("\nGenerating configuration files...\n\n");
         foreach ($clients as $client) {
             $config = $client->generateServerConfig($environment, $projectPath, $craftSubdirectory);
+
             try {
                 $result = $client->format() === 'toml'
                     ? $tomlWriter->write($client->getConfigPath(), $serverName, $config)
@@ -132,7 +133,7 @@ class InstallController extends Controller
      */
     private function selectClients(string $configRoot, EnvironmentDetector $detector): array
     {
-        $craftRoot = (string) Craft::getAlias('@root');
+        $craftRoot = (string) \Craft::getAlias('@root');
         $available = [
             new ClaudeCode($craftRoot, $configRoot, $detector),
             new Cursor($craftRoot, $configRoot, $detector),
@@ -240,7 +241,7 @@ class InstallController extends Controller
         if (\is_string($home) && str_starts_with($path, $home)) {
             return '~'.substr($path, \strlen($home));
         }
-        $root = (string) Craft::getAlias('@root');
+        $root = (string) \Craft::getAlias('@root');
         if (str_starts_with($path, $root)) {
             return '.'.substr($path, \strlen($root));
         }

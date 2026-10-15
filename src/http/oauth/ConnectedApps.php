@@ -7,9 +7,7 @@ namespace rewish\craft\mcp\http\oauth;
  */
 final readonly class ConnectedApps
 {
-    public function __construct(private OAuthStore $store)
-    {
-    }
+    public function __construct(private OAuthStore $store) {}
 
     /**
      * @return list<array{id: int, userId: int, name: string, scope: string, connected: ?int, lastUsed: ?int}>

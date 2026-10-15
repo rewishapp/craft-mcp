@@ -18,8 +18,7 @@ final readonly class OAuthClient
         public ?int $id = null,
         public ?\DateTimeImmutable $dateCreated = null,
         public ?\DateTimeImmutable $lastUsedAt = null,
-    ) {
-    }
+    ) {}
 
     public function allowsRedirect(string $uri): bool
     {

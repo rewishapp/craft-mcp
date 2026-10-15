@@ -12,9 +12,7 @@ use rewish\craft\mcp\enums\Scope;
  */
 final readonly class Metadata
 {
-    public function __construct(private OAuthConfig $config)
-    {
-    }
+    public function __construct(private OAuthConfig $config) {}
 
     /**
      * @return array<string, mixed>

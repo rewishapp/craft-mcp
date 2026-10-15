@@ -3,13 +3,13 @@
 Requirements: Craft CMS 5.0+ or 6.0+, PHP 8.2+.
 
 ```bash
-composer require "rewi.sh/craft-mcp:^1.2.0" -w && php craft plugin/install craft-mcp
+composer require "rewi.sh/craft-mcp:^1.2.1" -w && php craft plugin/install craft-mcp
 ```
 
 With DDEV:
 
 ```bash
-ddev composer require "rewi.sh/craft-mcp:^1.2.0" -w && ddev craft plugin/install craft-mcp
+ddev composer require "rewi.sh/craft-mcp:^1.2.1" -w && ddev craft plugin/install craft-mcp
 ```
 
 Local path (this repo next to your Craft project):

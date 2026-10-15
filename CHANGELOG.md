@@ -1,5 +1,10 @@
 # Release Notes for MCP - All in one
 
+## 1.2.1 - 2026-10-15
+
+### Fixed
+- Changelog editor-guide link uses an absolute GitHub URL so it works on the Craft Plugin Store.
+
 ## 1.2.0 - 2026-10-15
 
 ### Added
@@ -7,7 +12,7 @@
 - Access screen (was Tokens): Connected apps always visible, with an Enable OAuth CTA when the connector is off.
 - Setup three-path UI: Local stdio, Remote token, Claude OAuth.
 - Settings Essentials vs Advanced disclosure.
-- Short [editor guide](docs/editor-guide.md): connect, approve, drafts, disconnect.
+- Short [editor guide](https://github.com/rewishapp/craft-mcp/blob/v1.2.0/docs/editor-guide.md): connect, approve, drafts, disconnect.
 - `delete_asset` moves an asset to the trash. `update_asset` can rename (`newFilename`) and move (`newFolder`) within a volume, and finds an asset by id or by `volume` + `folder` + `filename`.
 - `upload_asset` takes a `folder` path (missing folders are created), `title`, and `alt`. Asset writes return a natural key `{volume, path, filename}`.
 - `update_user` (name, groups) and `set_user_status` (`active`, `suspended`, `inactive`). `create_user` takes `firstName`, `lastName`, `groups`, and `sendActivationEmail` (off by default), and checks the Craft edition’s user cap first. User writes need a Full token.

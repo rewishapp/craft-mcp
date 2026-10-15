@@ -9,15 +9,28 @@ use craft\elements\db\ElementQuery;
 use craft\elements\GlobalSet;
 use craft\elements\Tag;
 use craft\elements\User;
+use craft\enums\CmsEdition;
+use craft\errors\InvalidElementException;
 use craft\helpers\Assets as AssetsHelper;
+use craft\helpers\FileHelper;
+use craft\models\Volume;
+use craft\models\VolumeFolder;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use rewish\craft\mcp\attributes\ToolMeta;
+use rewish\craft\mcp\http\fetch\CurlTransport;
+use rewish\craft\mcp\http\fetch\DnsResolver;
+use rewish\craft\mcp\http\fetch\SafeFetch;
+use rewish\craft\mcp\Mcp;
 use rewish\craft\mcp\services\Activity;
+use rewish\craft\mcp\support\AssetIntake;
 use rewish\craft\mcp\support\CallContext;
+use rewish\craft\mcp\support\ElementAuth;
 use rewish\craft\mcp\support\Page;
+use rewish\craft\mcp\support\UserWriteRules;
+use yii\base\Model;
 
 final class ContentTools
 {
@@ -98,60 +111,108 @@ final class ContentTools
         });
     }
 
-    #[McpTool(name: 'upload_asset', description: 'Upload an asset from an https URL or a base64 payload into a volume. Limited to 20 MB.', annotations: new ToolAnnotations(destructiveHint: true))]
+    #[McpTool(name: 'upload_asset', description: 'Upload a file into a volume. Pass exactly one of url (a file on the public internet, fetched over https by the server: no redirects, no private or internal addresses) or base64 (a small file, optionally as a data: URI). Both are capped by the assetUploadMaxBytes setting. folder is a path in the volume such as "blog/2026" (omitted: the volume root; missing folders are created); folderId is the alternative. Returns the asset and its natural key {volume, path, filename}.', annotations: new ToolAnnotations(destructiveHint: true, openWorldHint: true))]
     #[ToolMeta(category: 'content', minScope: 'content', dangerous: true)]
-    public function uploadAsset(string $volume, string $filename, ?string $url = null, ?string $base64 = null, ?int $folderId = null): array
+    public function uploadAsset(string $volume, string $filename, ?string $url = null, ?string $base64 = null, ?int $folderId = null, ?string $folder = null, ?string $title = null, ?string $alt = null): array
     {
-        return Activity::run('upload_asset', function () use ($volume, $filename, $url, $base64, $folderId) {
-            $model = \Craft::$app->getVolumes()->getVolumeByHandle($volume);
-            if ($model === null) {
-                throw new ToolCallException("Unknown volume {$volume}.");
+        return Activity::run('upload_asset', function () use ($volume, $filename, $url, $base64, $folderId, $folder, $title, $alt) {
+            $model = $this->volume($volume);
+            if ($folderId !== null && $folder !== null) {
+                throw new ToolCallException('Pass either folder (a path) or folderId, not both.');
             }
 
-            $temp = $this->stage($filename, $url, $base64);
-            $folder = $folderId
-                ? \Craft::$app->getAssets()->getFolderById($folderId)
-                : \Craft::$app->getAssets()->getRootFolderByVolumeId((int) $model->id);
-            if ($folder === null) {
-                throw new ToolCallException('Unknown folder.');
+            $bytes = $this->intake()->bytes($url, $base64);
+            if ($folderId !== null) {
+                $target = \Craft::$app->getAssets()->getFolderById($folderId);
+                if ($target === null || (int) $target->volumeId !== (int) $model->id) {
+                    throw new ToolCallException("Folder {$folderId} is not in volume {$volume}.");
+                }
+            } else {
+                $target = $this->folder($model, $folder, true);
             }
 
-            $asset = new Asset();
-            $asset->volumeId = $model->id;
-            $asset->newFolderId = $folder->id;
-            $asset->tempFilePath = $temp;
-            $asset->filename = AssetsHelper::prepareAssetName($filename);
-            $asset->avoidFilenameConflicts = true;
-            if (!\Craft::$app->getElements()->saveElement($asset)) {
-                @unlink($temp);
+            $name = AssetsHelper::prepareAssetName($filename);
+            $temp = AssetsHelper::tempFilePath(pathinfo($name, \PATHINFO_EXTENSION) ?: 'tmp');
 
-                throw new ToolCallException('Craft rejected the upload.');
+            try {
+                if (file_put_contents($temp, $bytes) === false) {
+                    throw new ToolCallException('The file could not be written to Craft\'s temp folder.');
+                }
+
+                $asset = new Asset();
+                $asset->tempFilePath = $temp;
+                $asset->setFilename($name);
+                $asset->setMimeType(FileHelper::getMimeType($temp, null, false));
+                $asset->newFolderId = $target->id;
+                $asset->setVolumeId((int) $model->id);
+                $asset->uploaderId = CallContext::$userId;
+                $asset->avoidFilenameConflicts = true;
+                $asset->setScenario(Asset::SCENARIO_CREATE);
+                if ($title !== null) {
+                    $asset->title = $title;
+                }
+                if ($alt !== null) {
+                    $asset->alt = $alt;
+                }
+
+                ElementAuth::assertCanSave($asset);
+
+                if (!\Craft::$app->getElements()->saveElement($asset)) {
+                    throw new ToolCallException('Craft rejected the upload: '.$this->errors($asset));
+                }
+            } finally {
+                // Craft streams the temp file into the volume and leaves it behind.
+                if (is_file($temp)) {
+                    FileHelper::unlink($temp);
+                }
             }
 
-            return ['success' => true, 'asset' => $this->asset($asset)];
+            return $this->saved($asset);
         });
     }
 
-    #[McpTool(name: 'update_asset', description: 'Update an asset title or alt text.', annotations: new ToolAnnotations(destructiveHint: true))]
+    #[McpTool(name: 'update_asset', description: 'Update an asset: title, alt text, rename the file (newFilename), or move it to another folder in the same volume (newFolder, a path; "" for the root). Address it by id, or by volume + folder + filename. Only supplied values change; the file contents cannot be replaced.', annotations: new ToolAnnotations(destructiveHint: true))]
     #[ToolMeta(category: 'content', minScope: 'content', dangerous: true)]
-    public function updateAsset(int $id, ?string $title = null, ?string $alt = null): array
+    public function updateAsset(?int $id = null, ?string $volume = null, ?string $folder = null, ?string $filename = null, ?string $title = null, ?string $alt = null, ?string $newFilename = null, ?string $newFolder = null): array
     {
-        return Activity::run('update_asset', function () use ($id, $title, $alt) {
-            $asset = Asset::find()->id($id)->one();
-            if (!$asset instanceof Asset) {
-                throw new ToolCallException('No asset matched.');
-            }
+        return Activity::run('update_asset', function () use ($id, $volume, $folder, $filename, $title, $alt, $newFilename, $newFolder) {
+            $asset = $this->findAsset($id, $volume, $folder, $filename);
+            ElementAuth::assertCanSave($asset);
             if ($title !== null) {
                 $asset->title = $title;
             }
             if ($alt !== null) {
                 $asset->alt = $alt;
             }
+            if ($newFolder !== null) {
+                $model = $asset->getVolume();
+                $asset->newFolderId = $this->folder($model, $newFolder, true)->id;
+                $asset->setScenario(Asset::SCENARIO_MOVE);
+            }
+            if ($newFilename !== null) {
+                $asset->newFilename = AssetsHelper::prepareAssetName($newFilename);
+                $asset->setScenario(Asset::SCENARIO_FILEOPS);
+            }
             if (!\Craft::$app->getElements()->saveElement($asset)) {
-                throw new ToolCallException('Craft rejected the asset update.');
+                throw new ToolCallException('Craft rejected the asset update: '.$this->errors($asset));
             }
 
-            return ['success' => true, 'asset' => $this->asset($asset)];
+            return $this->saved($asset);
+        });
+    }
+
+    #[McpTool(name: 'delete_asset', description: 'Move an asset to the trash (restorable in the control panel). Address it by id, or by volume + folder + filename.', annotations: new ToolAnnotations(destructiveHint: true))]
+    #[ToolMeta(category: 'content', minScope: 'content', dangerous: true)]
+    public function deleteAsset(?int $id = null, ?string $volume = null, ?string $folder = null, ?string $filename = null): array
+    {
+        return Activity::run('delete_asset', function () use ($id, $volume, $folder, $filename) {
+            $asset = $this->findAsset($id, $volume, $folder, $filename);
+            ElementAuth::assertCanDelete($asset);
+            if (!\Craft::$app->getElements()->deleteElement($asset)) {
+                throw new ToolCallException('Craft could not delete the asset.');
+            }
+
+            return ['success' => true, 'deleted' => $asset->id, 'restorable' => true];
         });
     }
 
@@ -270,28 +331,87 @@ final class ContentTools
         });
     }
 
-    #[McpTool(name: 'create_user', description: 'Create a pending user. Requires a full-scope token and an admin Craft user.', annotations: new ToolAnnotations(destructiveHint: true))]
+    #[McpTool(name: 'create_user', description: 'Create a pending user: they cannot sign in until they activate the account, or set_user_status makes it active. No activation email is sent unless sendActivationEmail is true. Never creates an admin. groups are user group handles (Craft Pro). Requires a full-scope token and an admin Craft user.', annotations: new ToolAnnotations(destructiveHint: true))]
     #[ToolMeta(category: 'content', minScope: 'full', dangerous: true)]
-    public function createUser(string $email, string $username, ?string $fullName = null): array
+    public function createUser(string $email, ?string $username = null, ?string $firstName = null, ?string $lastName = null, #[Schema(type: 'array', items: ['type' => 'string'])] ?array $groups = null, bool $sendActivationEmail = false): array
     {
-        return Activity::run('create_user', static function () use ($email, $username, $fullName) {
-            $actor = CallContext::$userId
-                ? \Craft::$app->getUsers()->getUserById(CallContext::$userId)
-                : null;
-            if ($actor !== null && !$actor->admin) {
-                throw new ToolCallException('Only an admin user can create users through MCP.');
-            }
+        return Activity::run('create_user', function () use ($email, $username, $firstName, $lastName, $groups, $sendActivationEmail) {
+            $this->assertAdminCaller();
+            $users = \Craft::$app->getUsers();
+            $edition = \Craft::$app->edition;
+            UserWriteRules::assertRoomForUser($edition->name, $users->getMaxUsers($edition), (int) User::find()->status(null)->count());
+            $groupIds = $this->groupIds($groups);
 
             $user = new User();
             $user->email = $email;
-            $user->username = $username;
-            $user->fullName = $fullName;
+            $user->username = $username ?? $email;
+            $user->firstName = $firstName;
+            $user->lastName = $lastName;
             $user->pending = true;
             if (!\Craft::$app->getElements()->saveElement($user)) {
-                throw new ToolCallException('Craft rejected the user.');
+                throw new ToolCallException('Craft rejected the user: '.$this->errors($user));
+            }
+            if ($groupIds !== null) {
+                $users->assignUserToGroups((int) $user->id, $groupIds);
+            }
+            $sent = $sendActivationEmail && $users->sendActivationEmail($user);
+
+            return ['success' => true, 'user' => $this->userSummary($user), 'activationEmailSent' => $sent];
+        });
+    }
+
+    #[McpTool(name: 'update_user', description: 'Change a user\'s first name, last name, or groups. groups is the complete set and replaces the current one ([] removes every group). Admin accounts and the account this connection acts as are refused; email and password are never changed here. Requires a full-scope token and an admin Craft user.', annotations: new ToolAnnotations(destructiveHint: true))]
+    #[ToolMeta(category: 'content', minScope: 'full', dangerous: true)]
+    public function updateUser(string $user, ?string $firstName = null, ?string $lastName = null, #[Schema(type: 'array', items: ['type' => 'string'])] ?array $groups = null): array
+    {
+        return Activity::run('update_user', function () use ($user, $firstName, $lastName, $groups) {
+            $this->assertAdminCaller();
+            $target = $this->findUser($user);
+            $groupIds = $this->groupIds($groups);
+
+            if ($firstName !== null) {
+                $target->firstName = $firstName;
+            }
+            if ($lastName !== null) {
+                $target->lastName = $lastName;
+            }
+            // A stored fullName wins on save and would throw the new parts
+            // away; cleared, it is rebuilt from them.
+            if ($firstName !== null || $lastName !== null) {
+                $target->fullName = null;
+            }
+            if (!\Craft::$app->getElements()->saveElement($target)) {
+                throw new ToolCallException('Craft rejected the user: '.$this->errors($target));
+            }
+            if ($groupIds !== null) {
+                \Craft::$app->getUsers()->assignUserToGroups((int) $target->id, $groupIds);
             }
 
-            return ['success' => true, 'id' => $user->id, 'username' => $user->username];
+            return ['success' => true, 'user' => $this->userSummary($target)];
+        });
+    }
+
+    #[McpTool(name: 'set_user_status', description: 'Set a user\'s status: "active" activates a pending account or lifts a suspension, "suspended" stops sign-in but keeps the account, "inactive" deactivates it. Admin accounts and the account this connection acts as are refused. Requires a full-scope token and an admin Craft user.', annotations: new ToolAnnotations(destructiveHint: true, idempotentHint: true))]
+    #[ToolMeta(category: 'content', minScope: 'full', dangerous: true)]
+    public function setUserStatus(string $user, #[Schema(enum: ['active', 'suspended', 'inactive'])] string $status): array
+    {
+        return Activity::run('set_user_status', function () use ($user, $status) {
+            $this->assertAdminCaller();
+            $target = $this->findUser($user);
+            $users = \Craft::$app->getUsers();
+
+            try {
+                match ($status) {
+                    'active' => $this->activate($target),
+                    'suspended' => $users->suspendUser($target),
+                    'inactive' => $users->deactivateUser($target),
+                    default => throw new ToolCallException("Unknown status '{$status}'; use active, suspended or inactive."),
+                };
+            } catch (InvalidElementException) {
+                throw new ToolCallException('Craft rejected the status change: '.$this->errors($target));
+            }
+
+            return ['success' => true, 'user' => $this->userSummary($target)];
         });
     }
 
@@ -361,34 +481,176 @@ final class ContentTools
         ];
     }
 
-    private function stage(string $filename, ?string $url, ?string $base64): string
+    private function intake(): AssetIntake
     {
-        if (($url === null) === ($base64 === null)) {
-            throw new ToolCallException('Pass either url or base64, not both.');
+        $max = Mcp::settings()->assetUploadMaxBytes;
+
+        return new AssetIntake(new SafeFetch((new DnsResolver())(...), (new CurlTransport())(...), $max), $max);
+    }
+
+    private function volume(string $handle): Volume
+    {
+        return \Craft::$app->getVolumes()->getVolumeByHandle($handle)
+            ?? throw new ToolCallException("Unknown volume {$handle}.");
+    }
+
+    /**
+     * The folder at a path inside a volume (null or "" is the root). A missing
+     * folder is created when $create is set, otherwise null comes back.
+     */
+    private function folder(Volume $volume, ?string $path, bool $create): ?VolumeFolder
+    {
+        $assets = \Craft::$app->getAssets();
+        $trimmed = trim((string) $path, '/');
+        if ($trimmed === '') {
+            return $assets->getRootFolderByVolumeId((int) $volume->id);
         }
 
-        $temp = \Craft::$app->getPath()->getTempPath().'/'.uniqid('aio-', true).'-'.preg_replace('/[^a-zA-Z0-9._-]/', '', $filename);
-        if ($url !== null) {
-            if (!preg_match('#^https://#i', $url)) {
-                throw new ToolCallException('Asset URLs must start with https://');
+        // Folders are created on disk for local volumes, so a segment that
+        // steps outside its parent is refused here.
+        foreach (explode('/', $trimmed) as $segment) {
+            if (\in_array($segment, ['', '.', '..'], true) || str_contains($segment, '\\')) {
+                throw new ToolCallException("Invalid folder path '{$path}': use folder names separated by '/', such as 'blog/2026', without '.' or '..'.");
             }
-            $body = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => 20]]));
-            if (!\is_string($body)) {
-                throw new ToolCallException('Could not download that URL.');
-            }
+        }
+
+        $existing = $assets->findFolder(['volumeId' => $volume->id, 'path' => $trimmed.'/']);
+        if ($existing !== null || !$create) {
+            return $existing;
+        }
+
+        return $assets->ensureFolderByFullPathAndVolume($trimmed.'/', $volume, false);
+    }
+
+    private function findAsset(?int $id, ?string $volume, ?string $folder, ?string $filename): Asset
+    {
+        if ($id !== null) {
+            $asset = Asset::find()->id($id)->status(null)->one();
         } else {
-            $body = base64_decode((string) $base64, true);
-            if (!\is_string($body)) {
-                throw new ToolCallException('base64 payload could not be decoded.');
+            if ($volume === null || $filename === null) {
+                throw new ToolCallException('Pass the asset id, or volume and filename (with folder when it is not in the volume root).');
             }
+            $target = $this->folder($this->volume($volume), $folder, false);
+            $asset = $target === null
+                ? null
+                : Asset::find()->volume($volume)->folderId($target->id)->filename($filename)->status(null)->one();
         }
 
-        if (\strlen($body) > 20 * 1024 * 1024) {
-            throw new ToolCallException('The file is larger than 20 MB.');
-        }
-        file_put_contents($temp, $body);
+        return $asset instanceof Asset ? $asset : throw new ToolCallException('No asset matched. Use list_assets to find it.');
+    }
 
-        return $temp;
+    /**
+     * @return array<string, mixed>
+     */
+    private function saved(Asset $asset): array
+    {
+        // Read back: a rename or move settles its final filename and folder on save.
+        $saved = Asset::find()->id($asset->id)->status(null)->one() ?? $asset;
+
+        return [
+            'success' => true,
+            'asset' => $this->asset($saved),
+            'key' => [
+                'volume' => $saved->getVolume()?->handle,
+                'path' => rtrim((string) ($saved->getFolder()?->path ?? ''), '/'),
+                'filename' => $saved->getFilename(),
+            ],
+        ];
+    }
+
+    private function errors(Model $model): string
+    {
+        $messages = [];
+        foreach ($model->getErrors() as $list) {
+            $messages = [...$messages, ...$list];
+        }
+
+        return $messages === [] ? 'no reason given.' : implode(' ', $messages);
+    }
+
+    /**
+     * Full scope skips Craft's permission lookups, so a user write also needs
+     * an admin behind the token (stdio has no user and is local trust).
+     */
+    private function assertAdminCaller(): void
+    {
+        $actor = CallContext::$userId
+            ? \Craft::$app->getUsers()->getUserById(CallContext::$userId)
+            : null;
+        if ($actor !== null && !$actor->admin) {
+            throw new ToolCallException('Only an admin user can write users through MCP.');
+        }
+    }
+
+    /**
+     * The account a username or email names, once the rules allow changing it.
+     */
+    private function findUser(string $usernameOrEmail): User
+    {
+        $target = User::find()->status(null)->username($usernameOrEmail)->one()
+            ?? User::find()->status(null)->email($usernameOrEmail)->one()
+            ?? throw new ToolCallException("User '{$usernameOrEmail}' not found. Use list_users to find the username.");
+
+        UserWriteRules::assertMayChange((string) $target->username, (bool) $target->admin, (int) $target->id, CallContext::$userId);
+
+        return $target;
+    }
+
+    /**
+     * Resolved before anything is saved, so an unknown handle or an edition
+     * without groups refuses the whole write instead of leaving it half-made.
+     *
+     * @param null|array<int, mixed> $handles
+     *
+     * @return null|list<int>
+     */
+    private function groupIds(?array $handles): ?array
+    {
+        if ($handles === null) {
+            return null;
+        }
+
+        $edition = \Craft::$app->edition;
+        UserWriteRules::assertGroupsAvailable($edition->name, $edition->value >= CmsEdition::Pro->value);
+
+        $ids = [];
+        foreach ($handles as $handle) {
+            $group = \Craft::$app->getUserGroups()->getGroupByHandle((string) $handle);
+            if ($group === null) {
+                throw new ToolCallException("User group '{$handle}' not found.");
+            }
+            $ids[] = (int) $group->id;
+        }
+
+        return $ids;
+    }
+
+    private function activate(User $user): void
+    {
+        if ($user->suspended) {
+            \Craft::$app->getUsers()->unsuspendUser($user);
+        }
+        if ($user->getStatus() !== User::STATUS_ACTIVE) {
+            \Craft::$app->getUsers()->activateUser($user);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function userSummary(User $user): array
+    {
+        $fresh = User::find()->id($user->id)->status(null)->one() ?? $user;
+
+        return [
+            'id' => $fresh->id,
+            'username' => $fresh->username,
+            'email' => $fresh->email,
+            'firstName' => $fresh->firstName,
+            'lastName' => $fresh->lastName,
+            'status' => $fresh->getStatus(),
+            'groups' => array_map(static fn ($group) => $group->handle, $fresh->getGroups()),
+        ];
     }
 
     /**

@@ -4,13 +4,13 @@
 
 | Screen | What it is for |
 | --- | --- |
-| Dashboard | Server, environment, HTTP, writes, tool count, tokens, today’s calls, and drafts waiting. |
-| Agent drafts | Drafts an agent saved, with links into the entry editor. |
+| Dashboard | Ops hub: setup checklist, status cards with quick toggles, metrics, recent activity. |
+| Recent drafts | Drafts on this install (including agent writes), with preview links when available. |
 | Tools | Every tool, grouped by category. Search the list. Hide or show a tool. Hidden tools stay hidden for every client. |
-| Tokens | Create, reveal, and revoke bearer tokens for HTTP clients. |
+| Access | Bearer tokens and Connected apps (OAuth). Enable OAuth from here if it is off. |
 | Activity | Every tool call, including failures. Stdio calls have no user. HTTP calls show the token’s user. |
-| Setup | Config blocks for a local client and for HTTP. |
-| Settings | Server, writes, HTTP, and the extra instructions sent to the agent. |
+| Setup | Three paths: local stdio, remote token, Claude OAuth. |
+| Settings | Essentials (server, writes, HTTP, OAuth, public URL) plus Advanced. Hidden unless you can change settings. |
 
 ## Permissions
 

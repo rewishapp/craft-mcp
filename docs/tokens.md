@@ -2,7 +2,7 @@
 
 HTTP clients send a bearer token. Stdio does not use one.
 
-Create a token under **Tokens**. Give it a name, a scope, an optional expiry in days, and an optional section limit. The secret starts with `cmcp_`, is shown once, and is stored only as a hash. Copy it before you leave the reveal page. The reveal page also shows a Claude Code `.mcp.json` HTTP block (`type: http`) you can paste into Claude Code, Cursor, or Codex. Revoke a token from the list. Revoking deletes it. There is no way to show the secret again.
+Create a token under **Access**. Give it a name, a scope, an optional expiry in days, and an optional section limit. The secret starts with `cmcp_`, is shown once, and is stored only as a hash. Copy it before you leave the reveal page. The reveal page also shows a Claude Code `.mcp.json` HTTP block (`type: http`) you can paste into Claude Code, Cursor, or Codex. Revoke a token from the list. Revoking deletes it. There is no way to show the secret again.
 
 Expiry is stored and checked in UTC, the same way Craft stores datetime columns.
 
@@ -34,4 +34,4 @@ Empty **Expires in days** keeps the token until you revoke it.
 
 ## Connected apps (OAuth)
 
-When the OAuth connector is on, apps that users approve appear under **Connected apps** on the Tokens screen (not as hand-minted secrets). Disconnect removes the grant and every access token it issued. Hand-minted tokens (`cmcp_…`) stay on the Tokens list as before.
+Connected apps are always on the Access screen. When OAuth is off, enable it from there (or Settings), then paste the MCP URL in Claude Connectors. When it is on, approved apps appear in the table — Disconnect removes the grant and every access token it issued. Hand-minted tokens (`cmcp_…`) stay on the Tokens list as before.

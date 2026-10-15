@@ -7,16 +7,17 @@ Package `rewi.sh/craft-mcp`. Handle `craft-mcp`. Craft 5.0+ and 6.0+. PHP 8.2+.
 ## Start here
 
 1. [Install](installation.md)
-2. [Control panel](control-panel.md)
-3. [Connect a client](connect.md)
-4. [Tokens and scopes](tokens.md)
-5. [Tools, prompts, and resources](tools.md)
-6. [Writes and drafts](writes.md)
-7. [Configuration](configuration.md)
+2. [Editor guide](editor-guide.md) — connect, approve, drafts, disconnect
+3. [Control panel](control-panel.md)
+4. [Connect a client](connect.md)
+5. [Tokens and scopes](tokens.md)
+6. [Tools, prompts, and resources](tools.md)
+7. [Writes and drafts](writes.md)
+8. [Configuration](configuration.md)
 
 ## What you get
 
-- A sidebar in the control panel: Dashboard, Agent drafts, Tools, Tokens, Activity, Setup, and Settings.
+- A sidebar in the control panel: Dashboard, Recent drafts, Tools, Access, Activity, Setup, and Settings.
 - Stdio for Cursor, Claude Code, Codex, and any other client on the same machine (`php craft craft-mcp/install`).
 - HTTP at `/mcp` for a client that is not on this machine. Turn it on, then create a bearer token (Claude Code `.mcp.json` with `type: http`), or turn on the OAuth connector for Claude apps.
 - Read tools for entries, schema, assets, sites, logs, and GraphQL queries.

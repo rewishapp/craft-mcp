@@ -1,11 +1,11 @@
 {% extends "_layouts/cp" %}
-{% set title = "Agent drafts" %}
+{% set title = "Recent drafts" %}
 {% set selectedSubnavItem = "drafts" %}
 
 {% block content %}
   {% include "craft-mcp/_includes/ui" %}
   <div class="mcp">
-    <p class="mcp-intro">Drafts created by the server stay here until someone publishes them.</p>
+    <p class="mcp-intro">Recent drafts on this install, including those saved by agents. Publish when ready.</p>
     <section class="pane mcp-card">
       {% if drafts is empty %}
         <div class="mcp-empty">
@@ -18,7 +18,12 @@
           <tbody>
             {% for draft in drafts %}
               <tr>
-                <td><a href="{{ draft.cpEditUrl }}">{{ draft.title ?: 'Untitled' }}</a></td>
+                <td>
+                  <a href="{{ draft.cpEditUrl }}">{{ draft.title ?: 'Untitled' }}</a>
+                  {% if previewUrls[draft.id] is defined %}
+                    <span class="mcp-muted"><a href="{{ previewUrls[draft.id] }}" target="_blank" rel="noopener">Preview</a></span>
+                  {% endif %}
+                </td>
                 <td>{{ draft.section.handle ?? '—' }}</td>
                 <td>{{ draft.dateUpdated ? draft.dateUpdated|date('short') : '—' }}</td>
                 <td class="mcp-actions-cell">

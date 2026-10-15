@@ -14,10 +14,14 @@ Call `list_mcp_tools` to see the full catalog, including tools the current conne
 | `list_categories`, `list_tags` | Readonly | |
 | `create_entry`, `update_entry`, `publish_entry`, `delete_entry`, `duplicate_entry` | Content | Yes |
 | `copy_entry_to_site`, `create_nested_entry`, `move_nested_entry` | Content | Yes |
-| `upload_asset`, `update_asset`, `create_category`, `create_tag`, `update_global_set` | Content | Yes |
+| `upload_asset`, `update_asset`, `delete_asset`, `create_category`, `create_tag`, `update_global_set` | Content | Yes |
 | `list_users` | Content | |
 | `list_globals` | Full | |
-| `create_user` | Full | Yes |
+| `create_user`, `update_user`, `set_user_status` | Full | Yes |
+
+`upload_asset` takes exactly one of `url` or `base64`, a `folder` path (or `folderId`), and optional `title` and `alt`. `update_asset` and `delete_asset` find an asset by `id`, or by `volume` + `folder` + `filename`. `update_asset` can also rename (`newFilename`) or move within the volume (`newFolder`). `delete_asset` moves the asset to the trash. Asset writes return `key` as `{volume, path, filename}`.
+
+`create_user` makes a pending account (never an admin) and sends no email unless `sendActivationEmail` is true. `update_user` changes first name, last name, or groups (the full set). `set_user_status` takes `active`, `suspended`, or `inactive`. User groups need Craft Pro. Admin accounts and the account the token acts as are refused, and no tool sets a password or changes an existing account’s email.
 
 `list_entries` filters by section, entry type, status, site, search, slug, or author username. Omit `status` (or pass `"any"`) to include every status (same as the control panel Entries index and as `count_entries`). Pass `status: "live"` for live entries only. Each row carries its own `status`. Relations come back as natural keys. `get_entry` takes an id, or a section and slug, in the same field shape `create_entry` accepts.
 

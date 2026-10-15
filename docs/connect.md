@@ -66,7 +66,7 @@ Stdio has no token. It runs as local trust, with the same reach as the Craft con
 ## HTTP
 
 1. Settings → turn on **HTTP transport**. The path defaults to `mcp`, so the URL is `https://your-site.example/mcp`.
-2. Tokens → create a token. The secret is shown once, with a config block you can paste.
+2. Access → create a token. The secret is shown once, with a config block you can paste.
 3. Paste that block into the client.
 
 Claude Code `.mcp.json` (also fine for Cursor and Codex):
@@ -103,7 +103,7 @@ Production checklist:
 2. **`httpPublicUrl`** — set this on a headless install so OAuth discovery and redirects point at Craft, not the frontend.
 3. Connector URL must match the advertised resource exactly (usually `https://cms.example.com/mcp`).
 
-Consent lives at **MCP - All in one → Connect** (`/admin/craft-mcp/connect`). Connected apps appear on the Tokens screen; Disconnect revokes the grant immediately. Hand-minted tokens keep working when OAuth is off or unused.
+Consent lives at **MCP - All in one → Connect** (`/admin/craft-mcp/connect`). Connected apps appear on Access; Disconnect revokes the grant immediately. Hand-minted tokens keep working when OAuth is off or unused.
 
 For Anthropic’s egress, add `160.79.104.0/21` to **Allowed IPs** if that list is not empty.
 

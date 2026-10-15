@@ -11,8 +11,8 @@
     <p class="mcp-intro">A <code>config/craft-mcp.php</code> file overrides these values where it exists. Production starts with the server and writes turned off until you opt in.</p>
 
     <section class="pane mcp-settings">
-      <h2>Server</h2>
-      <p class="mcp-intro">What the agent is allowed to do on this install.</p>
+      <h2>Essentials</h2>
+      <p class="mcp-intro">What you need to get a client connected.</p>
       {{ forms.lightswitchField({
         label: 'Server enabled',
         name: 'settings[enabled]',
@@ -24,11 +24,6 @@
         instructions: 'Entry edits, uploads, SQL, GraphQL mutations, backups, and cache clearing.',
         name: 'settings[enableDangerousTools]',
         on: settings.enableDangerousTools,
-      }) }}
-      {{ forms.lightswitchField({
-        label: 'Allow tinker when psy/psysh is installed',
-        name: 'settings[enableTinker]',
-        on: settings.enableTinker,
       }) }}
       {{ forms.selectField({
         label: 'Entry write mode',
@@ -45,67 +40,11 @@
         name: 'settings[previewUrls]',
         on: settings.previewUrls,
       }) }}
-      {{ forms.textField({
-        label: 'Preview token lifetime in seconds',
-        instructions: 'Leave empty to use Craft’s own preview token duration.',
-        name: 'settings[previewTokenDuration]',
-        value: settings.previewTokenDuration,
-        type: 'number',
-        min: 60,
-        placeholder: 'Craft default',
-      }) }}
-      {{ forms.checkboxSelectField({
-        label: 'Scopes that cannot be minted',
-        name: 'settings[disabledScopes]',
-        values: settings.disabledScopes,
-        options: [
-          { label: 'Readonly', value: 'readonly' },
-          { label: 'Content', value: 'content' },
-          { label: 'Full', value: 'full' },
-        ],
-      }) }}
-    </section>
-
-    <section class="pane mcp-settings">
-      <h2>HTTP</h2>
-      <p class="mcp-intro">Remote clients. Cursor, Claude Code, Codex, and other local clients can keep using stdio with this off.</p>
       {{ forms.lightswitchField({
         label: 'HTTP transport',
+        instructions: 'Remote clients. Local Cursor / Claude Code / Codex can keep using stdio with this off.',
         name: 'settings[httpTransport]',
         on: settings.httpTransport,
-        first: true,
-      }) }}
-      {{ forms.textField({
-        label: 'HTTP path',
-        name: 'settings[httpPath]',
-        value: settings.httpPath,
-      }) }}
-      {{ forms.textField({
-        label: 'Public base URL',
-        instructions: 'Set this when the control panel is not the URL clients should call.',
-        name: 'settings[httpPublicUrl]',
-        value: settings.httpPublicUrl,
-        type: 'url',
-        placeholder: 'https://cms.example.com',
-      }) }}
-      {{ forms.textField({
-        label: 'Session lifetime in seconds',
-        name: 'settings[httpSessionTtl]',
-        value: settings.httpSessionTtl,
-        type: 'number',
-        min: 60,
-      }) }}
-      {{ forms.textareaField({
-        label: 'Allowed IPs',
-        instructions: 'One address or CIDR range per line (IPv4/IPv6). Leave empty to allow any IP. Example: 160.79.104.0/21',
-        name: 'settings[allowedIps]',
-        value: settings.allowedIps|join('\n'),
-        rows: 4,
-      }) }}
-      {{ forms.lightswitchField({
-        label: 'Publish /.well-known/mcp/server-card.json',
-        name: 'settings[publishServerCard]',
-        on: settings.publishServerCard,
       }) }}
       {{ forms.lightswitchField({
         label: 'OAuth connector',
@@ -113,44 +52,210 @@
         name: 'settings[oauth]',
         on: settings.oauth,
       }) }}
-      {{ forms.textareaField({
-        label: 'OAuth redirect URI allowlist',
-        instructions: 'One URL per line. Only these callbacks may be registered. Loopback (localhost / 127.0.0.1) matches any port. Defaults cover Claude apps and Claude Code.',
-        name: 'settings[oauthRedirectUris]',
-        value: settings.oauthRedirectUris|join('\n'),
-        rows: 4,
-      }) }}
       {{ forms.textField({
-        label: 'OAuth access token lifetime (seconds)',
-        name: 'settings[oauthAccessTokenTtl]',
-        value: settings.oauthAccessTokenTtl,
-        type: 'number',
-        min: 60,
-      }) }}
-      {{ forms.textField({
-        label: 'OAuth refresh token lifetime (seconds)',
-        instructions: 'Each refresh replaces the previous token. Reusing an old one revokes the connection.',
-        name: 'settings[oauthRefreshTokenTtl]',
-        value: settings.oauthRefreshTokenTtl,
-        type: 'number',
-        min: 3600,
+        label: 'Public base URL',
+        instructions: 'Set this when the control panel is not the URL clients should call (headless / separate CP host).',
+        name: 'settings[httpPublicUrl]',
+        value: settings.httpPublicUrl,
+        type: 'url',
+        placeholder: 'https://cms.example.com',
       }) }}
     </section>
 
-    <section class="pane mcp-settings">
-      <h2>Agent</h2>
-      {{ forms.lightswitchField({
-        label: 'Show a client config when a token is created',
-        name: 'settings[showClientConfigSnippet]',
-        on: settings.showClientConfigSnippet,
-        first: true,
-      }) }}
-      {{ forms.textareaField({
-        label: 'Extra instructions for the agent',
-        name: 'settings[additionalInstructions]',
-        value: settings.additionalInstructions,
-        rows: 4,
-      }) }}
-    </section>
+    <details class="pane mcp-advanced">
+      <summary class="mcp-advanced-summary">
+        <span class="mcp-advanced-title">
+          <strong>Advanced settings</strong>
+          <span>Path, TTLs, IPs, OAuth details, upload limits, and agent extras</span>
+        </span>
+        <span class="mcp-advanced-hint">
+          <span class="mcp-advanced-show">Show</span>
+          <span class="mcp-advanced-hide">Hide</span>
+        </span>
+      </summary>
+      <div class="mcp-settings mcp-advanced-body">
+        <h2>Server</h2>
+        {{ forms.textField({
+          label: 'Asset upload size limit',
+          instructions: 'Largest file upload_asset accepts (URL or base64). Stored in bytes; use a preset or type your own. Default 20 MB, minimum 1 KB.',
+          id: 'settings-assetUploadMaxBytes',
+          name: 'settings[assetUploadMaxBytes]',
+          value: settings.assetUploadMaxBytes,
+          type: 'number',
+          min: 1024,
+          first: true,
+          inputAttributes: {
+            list: 'mcp-preset-upload',
+            'data-mcp-hint': 'bytes',
+          },
+        }) }}
+        <div class="mcp-presets" data-mcp-presets-for="settings-assetUploadMaxBytes">
+          <button type="button" class="btn small" data-mcp-fill="5242880">5 MB</button>
+          <button type="button" class="btn small" data-mcp-fill="10485760">10 MB</button>
+          <button type="button" class="btn small" data-mcp-fill="20971520">20 MB</button>
+          <button type="button" class="btn small" data-mcp-fill="52428800">50 MB</button>
+          <span class="mcp-preset-hint" data-mcp-hint-out></span>
+        </div>
+        <datalist id="mcp-preset-upload">
+          <option value="5242880"></option>
+          <option value="10485760"></option>
+          <option value="20971520"></option>
+          <option value="52428800"></option>
+        </datalist>
+        {{ forms.lightswitchField({
+          label: 'Allow tinker when psy/psysh is installed',
+          name: 'settings[enableTinker]',
+          on: settings.enableTinker,
+        }) }}
+        {{ forms.textField({
+          label: 'Preview token lifetime',
+          instructions: 'How long preview links stay valid. Leave empty for Craft’s default. Stored in seconds.',
+          id: 'settings-previewTokenDuration',
+          name: 'settings[previewTokenDuration]',
+          value: settings.previewTokenDuration,
+          type: 'number',
+          min: 60,
+          placeholder: 'Craft default',
+          inputAttributes: {
+            list: 'mcp-preset-preview-ttl',
+            'data-mcp-hint': 'seconds',
+          },
+        }) }}
+        <div class="mcp-presets" data-mcp-presets-for="settings-previewTokenDuration">
+          <button type="button" class="btn small" data-mcp-fill="900">15 min</button>
+          <button type="button" class="btn small" data-mcp-fill="3600">1 hour</button>
+          <button type="button" class="btn small" data-mcp-fill="86400">1 day</button>
+          <span class="mcp-preset-hint" data-mcp-hint-out></span>
+        </div>
+        <datalist id="mcp-preset-preview-ttl">
+          <option value="900"></option>
+          <option value="3600"></option>
+          <option value="86400"></option>
+        </datalist>
+        {{ forms.checkboxSelectField({
+          label: 'Scopes that cannot be minted',
+          name: 'settings[disabledScopes]',
+          values: settings.disabledScopes,
+          options: [
+            { label: 'Readonly', value: 'readonly' },
+            { label: 'Content', value: 'content' },
+            { label: 'Full', value: 'full' },
+          ],
+        }) }}
+
+        <h2>HTTP</h2>
+        {{ forms.textField({
+          label: 'HTTP path',
+          name: 'settings[httpPath]',
+          value: settings.httpPath,
+          first: true,
+        }) }}
+        {{ forms.textField({
+          label: 'Session lifetime',
+          instructions: 'How long an HTTP MCP session stays open. Stored in seconds.',
+          id: 'settings-httpSessionTtl',
+          name: 'settings[httpSessionTtl]',
+          value: settings.httpSessionTtl,
+          type: 'number',
+          min: 60,
+          inputAttributes: {
+            list: 'mcp-preset-session-ttl',
+            'data-mcp-hint': 'seconds',
+          },
+        }) }}
+        <div class="mcp-presets" data-mcp-presets-for="settings-httpSessionTtl">
+          <button type="button" class="btn small" data-mcp-fill="900">15 min</button>
+          <button type="button" class="btn small" data-mcp-fill="3600">1 hour</button>
+          <button type="button" class="btn small" data-mcp-fill="14400">4 hours</button>
+          <span class="mcp-preset-hint" data-mcp-hint-out></span>
+        </div>
+        <datalist id="mcp-preset-session-ttl">
+          <option value="900"></option>
+          <option value="3600"></option>
+          <option value="14400"></option>
+        </datalist>
+        {{ forms.textareaField({
+          label: 'Allowed IPs',
+          instructions: 'One address or CIDR range per line (IPv4/IPv6). Leave empty to allow any IP. Example: 160.79.104.0/21',
+          name: 'settings[allowedIps]',
+          value: settings.allowedIps|join('\n'),
+          rows: 4,
+        }) }}
+        {{ forms.lightswitchField({
+          label: 'Publish /.well-known/mcp/server-card.json',
+          name: 'settings[publishServerCard]',
+          on: settings.publishServerCard,
+        }) }}
+        {{ forms.textareaField({
+          label: 'OAuth redirect URI allowlist',
+          instructions: 'One URL per line. Only these callbacks may be registered. Loopback (localhost / 127.0.0.1) matches any port. Defaults cover Claude apps and Claude Code.',
+          name: 'settings[oauthRedirectUris]',
+          value: settings.oauthRedirectUris|join('\n'),
+          rows: 4,
+        }) }}
+        {{ forms.textField({
+          label: 'OAuth access token lifetime',
+          instructions: 'How long a Claude session’s access token lasts before refresh. Stored in seconds.',
+          id: 'settings-oauthAccessTokenTtl',
+          name: 'settings[oauthAccessTokenTtl]',
+          value: settings.oauthAccessTokenTtl,
+          type: 'number',
+          min: 60,
+          inputAttributes: {
+            list: 'mcp-preset-oauth-access',
+            'data-mcp-hint': 'seconds',
+          },
+        }) }}
+        <div class="mcp-presets" data-mcp-presets-for="settings-oauthAccessTokenTtl">
+          <button type="button" class="btn small" data-mcp-fill="900">15 min</button>
+          <button type="button" class="btn small" data-mcp-fill="3600">1 hour</button>
+          <button type="button" class="btn small" data-mcp-fill="28800">8 hours</button>
+          <span class="mcp-preset-hint" data-mcp-hint-out></span>
+        </div>
+        <datalist id="mcp-preset-oauth-access">
+          <option value="900"></option>
+          <option value="3600"></option>
+          <option value="28800"></option>
+        </datalist>
+        {{ forms.textField({
+          label: 'OAuth refresh token lifetime',
+          instructions: 'How long a connected app can refresh without signing in again. Each refresh replaces the previous token; reusing an old one revokes the connection. Stored in seconds.',
+          id: 'settings-oauthRefreshTokenTtl',
+          name: 'settings[oauthRefreshTokenTtl]',
+          value: settings.oauthRefreshTokenTtl,
+          type: 'number',
+          min: 3600,
+          inputAttributes: {
+            list: 'mcp-preset-oauth-refresh',
+            'data-mcp-hint': 'seconds',
+          },
+        }) }}
+        <div class="mcp-presets" data-mcp-presets-for="settings-oauthRefreshTokenTtl">
+          <button type="button" class="btn small" data-mcp-fill="604800">7 days</button>
+          <button type="button" class="btn small" data-mcp-fill="2592000">30 days</button>
+          <button type="button" class="btn small" data-mcp-fill="7776000">90 days</button>
+          <span class="mcp-preset-hint" data-mcp-hint-out></span>
+        </div>
+        <datalist id="mcp-preset-oauth-refresh">
+          <option value="604800"></option>
+          <option value="2592000"></option>
+          <option value="7776000"></option>
+        </datalist>
+
+        <h2>Agent</h2>
+        {{ forms.lightswitchField({
+          label: 'Show a client config when a token is created',
+          name: 'settings[showClientConfigSnippet]',
+          on: settings.showClientConfigSnippet,
+          first: true,
+        }) }}
+        {{ forms.textareaField({
+          label: 'Extra instructions for the agent',
+          name: 'settings[additionalInstructions]',
+          value: settings.additionalInstructions,
+          rows: 4,
+        }) }}
+      </div>
+    </details>
   </div>
 {% endblock %}

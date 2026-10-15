@@ -5,31 +5,99 @@
 {% block content %}
   {% include "craft-mcp/_includes/ui" %}
   <div class="mcp">
-    <p class="mcp-intro">Paste the stdio block into Cursor, Claude Code, Codex, or another local client. Use the HTTP block (Claude Code <code>.mcp.json</code> shape) when the client is not on this machine. Claude Desktop cannot take a remote URL in its config file — use a custom connector or Claude Code / Cursor / Codex instead.</p>
+    <p class="mcp-intro">Pick how the client reaches this install. Local stdio for Cursor / Claude Code / Codex on this machine. Remote token for HTTP. Claude OAuth for Claude Connectors.</p>
 
-    <section class="pane mcp-card">
+    <div class="mcp-tabs" role="tablist">
+      <button type="button" class="mcp-tab is-active" data-mcp-tab="stdio" role="tab" aria-selected="true">Local stdio</button>
+      <button type="button" class="mcp-tab" data-mcp-tab="remote" role="tab" aria-selected="false">Remote token</button>
+      <button type="button" class="mcp-tab" data-mcp-tab="oauth" role="tab" aria-selected="false">Claude OAuth</button>
+    </div>
+
+    <section class="pane mcp-card mcp-tab-panel" data-mcp-panel="stdio" role="tabpanel">
       <div class="mcp-card-head">
         <h2>Local stdio</h2>
         <button class="btn small" type="button" data-mcp-copy="#mcp-stdio">Copy</button>
       </div>
       <div class="mcp-card-body">
+        <p>This machine only. Uses this install’s PHP. Or run <code>php craft craft-mcp/install</code> to write client config files.</p>
         <pre id="mcp-stdio">{{ stdioSnippet }}</pre>
       </div>
     </section>
 
-    <section class="pane mcp-card">
+    <section class="pane mcp-card mcp-tab-panel" data-mcp-panel="remote" role="tabpanel" hidden>
       <div class="mcp-card-head">
-        <h2>Remote HTTP</h2>
+        <h2>Remote token</h2>
         <button class="btn small" type="button" data-mcp-copy="#mcp-remote">Copy</button>
       </div>
       <div class="mcp-card-body">
+        <ul class="mcp-checklist" style="margin-bottom: 14px;">
+          <li>
+            <span class="mcp-check {{ settings.httpTransport ? 'is-done' : '' }}"></span>
+            <span>{% if settings.httpTransport %}HTTP transport on{% else %}<a href="{{ cpUrl('craft-mcp/settings') }}">Enable HTTP transport</a>{% endif %}</span>
+          </li>
+          <li>
+            <span class="mcp-check"></span>
+            <span><a href="{{ cpUrl('craft-mcp/tokens') }}">Mint a bearer token</a>, then replace <code>YOUR_TOKEN</code></span>
+          </li>
+        </ul>
         {% if settings.httpTransport %}
-          <p class="mcp-callout">Endpoint <code>{{ endpointUrl }}</code>. Create a token, then replace YOUR_TOKEN.</p>
+          <p class="mcp-callout">Endpoint <code>{{ endpointUrl }}</code></p>
         {% else %}
           <p class="mcp-callout">HTTP is off. Turn it on in Settings before sharing this URL.</p>
         {% endif %}
         <pre id="mcp-remote">{{ httpSnippet }}</pre>
       </div>
     </section>
+
+    <section class="pane mcp-card mcp-tab-panel" data-mcp-panel="oauth" role="tabpanel" hidden>
+      <div class="mcp-card-head">
+        <h2>Claude OAuth</h2>
+        <button class="btn small" type="button" data-mcp-copy="#mcp-oauth-url">Copy URL</button>
+      </div>
+      <div class="mcp-card-body">
+        <ul class="mcp-checklist" style="margin-bottom: 14px;">
+          <li>
+            <span class="mcp-check {{ settings.httpTransport ? 'is-done' : '' }}"></span>
+            <span>{% if settings.httpTransport %}HTTP transport on{% else %}<a href="{{ cpUrl('craft-mcp/settings') }}">Enable HTTP</a>{% endif %}</span>
+          </li>
+          <li>
+            <span class="mcp-check {{ settings.oauth ? 'is-done' : '' }}"></span>
+            <span>{% if settings.oauth %}OAuth connector on{% else %}<a href="{{ cpUrl('craft-mcp/settings') }}">Enable OAuth</a> (or from Access){% endif %}</span>
+          </li>
+          <li>
+            <span class="mcp-check {{ settings.httpPublicUrl ? 'is-done' : 'is-optional' }}"></span>
+            <span>{% if settings.httpPublicUrl %}Public base URL set{% else %}Set <code>httpPublicUrl</code> if the CP host is not the public URL <em>(optional on many installs)</em>{% endif %}</span>
+          </li>
+          <li>
+            <span class="mcp-check"></span>
+            <span>Paste the URL below in Claude Connectors, sign in, pick a scope, approve</span>
+          </li>
+          <li>
+            <span class="mcp-check"></span>
+            <span>Disconnect anytime under <a href="{{ cpUrl('craft-mcp/tokens') }}">Access → Connected apps</a></span>
+          </li>
+        </ul>
+        <p class="mcp-callout">MCP URL <code id="mcp-oauth-url">{{ endpointUrl }}</code></p>
+      </div>
+    </section>
   </div>
+  <script>
+    (function () {
+      var tabs = document.querySelectorAll('[data-mcp-tab]');
+      var panels = document.querySelectorAll('[data-mcp-panel]');
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var id = tab.getAttribute('data-mcp-tab');
+          tabs.forEach(function (t) {
+            var on = t === tab;
+            t.classList.toggle('is-active', on);
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          panels.forEach(function (panel) {
+            panel.hidden = panel.getAttribute('data-mcp-panel') !== id;
+          });
+        });
+      });
+    })();
+  </script>
 {% endblock %}

@@ -71,15 +71,20 @@ class Mcp extends BasePlugin
         $item['label'] = 'MCP - All in one';
         $item['url'] = 'craft-mcp';
         // Keep Craft’s default icon-mask.svg for the sidebar. icon.svg is the colored Plugin Store mark.
-        $item['subnav'] = [
+        $subnav = [
             'dashboard' => ['label' => 'Dashboard', 'url' => 'craft-mcp'],
-            'drafts' => ['label' => 'Agent drafts', 'url' => 'craft-mcp/drafts'],
+            'drafts' => ['label' => 'Recent drafts', 'url' => 'craft-mcp/drafts'],
             'tools' => ['label' => 'Tools', 'url' => 'craft-mcp/tools'],
-            'tokens' => ['label' => 'Tokens', 'url' => 'craft-mcp/tokens'],
-            'activity' => ['label' => 'Activity', 'url' => 'craft-mcp/activity'],
-            'setup' => ['label' => 'Setup', 'url' => 'craft-mcp/setup'],
-            'settings' => ['label' => 'Settings', 'url' => 'craft-mcp/settings'],
         ];
+        if ($user->can('craft-mcp:manageTokens') || $user->can('craft-mcp:manageAllTokens')) {
+            $subnav['tokens'] = ['label' => 'Access', 'url' => 'craft-mcp/tokens'];
+        }
+        $subnav['activity'] = ['label' => 'Activity', 'url' => 'craft-mcp/activity'];
+        $subnav['setup'] = ['label' => 'Setup', 'url' => 'craft-mcp/setup'];
+        if ($user->can('craft-mcp:manageSettings')) {
+            $subnav['settings'] = ['label' => 'Settings', 'url' => 'craft-mcp/settings'];
+        }
+        $item['subnav'] = $subnav;
 
         return $item;
     }

@@ -28,6 +28,7 @@ return [
     'disabledScopes' => [],
     'paginationLimit' => 100,
     'maxResponseBytes' => 1048576,
+    'assetUploadMaxBytes' => 20971520,
     'additionalInstructions' => '',
     'showClientConfigSnippet' => true,
     'publishServerCard' => false,
@@ -56,6 +57,7 @@ return [
 | `disabledScopes` | Scopes that cannot be minted or used. `readonly`, `content`, or `full`. |
 | `paginationLimit` | Default page size cap. 1–500. |
 | `maxResponseBytes` | Soft cap for a tool payload. |
+| `assetUploadMaxBytes` | Largest file `upload_asset` accepts, from a URL or base64, in bytes. Default 20971520 (20 MB). Minimum 1024. |
 | `additionalInstructions` | Extra text included for the agent. |
 | `showClientConfigSnippet` | Show the HTTP config on the token reveal page. |
 | `publishServerCard` | Serve `/.well-known/mcp/server-card.json`. |

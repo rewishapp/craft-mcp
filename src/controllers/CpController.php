@@ -13,6 +13,7 @@ use rewish\craft\mcp\records\TokenRecord;
 use rewish\craft\mcp\services\Catalog;
 use rewish\craft\mcp\services\Setup;
 use rewish\craft\mcp\services\Tokens;
+use rewish\craft\mcp\support\PreviewLinks;
 use yii\web\ForbiddenHttpException;
 use yii\web\Response;
 
@@ -25,27 +26,97 @@ class CpController extends Controller
         $catalog = new Catalog();
         $tools = $catalog->all();
         $setup = new Setup();
+        $tokenCount = (int) TokenRecord::find()->where(['grantId' => null])->count();
+        $appCount = 0;
+        if ($settings->httpTransport && $settings->oauth) {
+            $appCount = \count((new ConnectedApps(new RecordOAuthStore()))->rows(null));
+        }
+        $hasActivity = false;
+
+        try {
+            $hasActivity = $this->callsToday() > 0 || ActivityRecord::find()->exists();
+        } catch (\Throwable) {
+        }
+        $oauthStatus = 'off';
+        if ($settings->oauth) {
+            $oauthStatus = trim((string) $settings->httpPublicUrl) === '' ? 'needsUrl' : 'on';
+            // OAuth works without httpPublicUrl when the CP host is the public host.
+            if ($oauthStatus === 'needsUrl' && !$this->likelyNeedsPublicUrl()) {
+                $oauthStatus = 'on';
+            }
+        }
+        $checklist = [
+            'server' => $settings->enabled,
+            'writes' => $settings->enableDangerousTools,
+            'connect' => $settings->enabled,
+            'access' => $tokenCount > 0 || ($settings->oauth && $settings->httpTransport),
+            'activity' => $hasActivity,
+            'ready' => false,
+        ];
+        $checklist['ready'] = $checklist['server'] && $checklist['connect'] && $checklist['access'] && $checklist['activity'];
 
         return $this->renderTemplate('craft-mcp/dashboard/index', [
             'settings' => $settings,
             'toolCount' => \count(array_filter($tools, static fn (array $tool) => $tool['exposed'])),
             'toolTotal' => \count($tools),
-            'tokenCount' => (int) TokenRecord::find()->where(['grantId' => null])->count(),
+            'tokenCount' => $tokenCount,
+            'appCount' => $appCount,
             'callsToday' => $this->callsToday(),
             'draftCount' => (int) Entry::find()->drafts()->status(null)->count(),
             'activity' => $this->activity(8),
-            'stdioSnippet' => $setup->stdioSnippet(),
-            'httpSnippet' => $setup->httpSnippet(),
             'endpointUrl' => $setup->endpointUrl(),
+            'canManage' => \Craft::$app->getUser()->getIdentity()?->can('craft-mcp:manageSettings') ?? false,
+            'oauthStatus' => $oauthStatus,
+            'checklist' => $checklist,
         ]);
+    }
+
+    public function actionToggleSetting(): Response
+    {
+        $this->requirePostRequest();
+        $this->requirePermission('craft-mcp:manageSettings');
+        $key = (string) $this->request->getRequiredBodyParam('key');
+        $allowed = ['enabled', 'enableDangerousTools', 'httpTransport', 'oauth'];
+        if (!\in_array($key, $allowed, true)) {
+            $this->setFailFlash('That setting cannot be toggled here.');
+
+            return $this->redirect('craft-mcp');
+        }
+
+        $raw = $this->request->getBodyParam('value');
+        $value = $raw === true || $raw === 1 || $raw === '1';
+        $overrides = [$key => $value];
+        if ($key === 'oauth' && $value) {
+            $overrides['httpTransport'] = true;
+        }
+        if ($this->persist($overrides)) {
+            $this->setSuccessFlash('Setting updated.');
+        }
+
+        $return = (string) $this->request->getBodyParam('redirect', 'craft-mcp');
+        if (!\in_array($return, ['craft-mcp', 'craft-mcp/tokens', 'craft-mcp/settings'], true)) {
+            $return = 'craft-mcp';
+        }
+
+        return $this->redirect($return);
     }
 
     public function actionDrafts(): Response
     {
         $this->requirePermission('craft-mcp:access');
         $drafts = Entry::find()->drafts()->status(null)->orderBy(['dateUpdated' => \SORT_DESC])->limit(40)->all();
+        $previewUrls = [];
+        foreach ($drafts as $draft) {
+            $url = PreviewLinks::forEntry($draft);
+            if ($url !== null) {
+                $previewUrls[$draft->id] = $url;
+            }
+        }
 
-        return $this->renderTemplate('craft-mcp/drafts/index', ['drafts' => $drafts]);
+        return $this->renderTemplate('craft-mcp/drafts/index', [
+            'drafts' => $drafts,
+            'previewUrls' => $previewUrls,
+        ]);
     }
 
     public function actionPublishDraft(): Response
@@ -116,9 +187,10 @@ class CpController extends Controller
         }
 
         $settings = Mcp::settings();
-        $apps = null;
+        $apps = [];
         $appOwners = [];
-        if ($settings->httpTransport && $settings->oauth) {
+        $oauthReady = $settings->httpTransport && $settings->oauth;
+        if ($oauthReady) {
             $apps = (new ConnectedApps(new RecordOAuthStore()))->rows($all ? null : $user?->id);
             foreach ($apps as $app) {
                 if (!isset($appOwners[$app['userId']])) {
@@ -136,6 +208,10 @@ class CpController extends Controller
             'apps' => $apps,
             'appOwners' => $appOwners,
             'showAppUser' => (bool) $all,
+            'settings' => $settings,
+            'oauthReady' => $oauthReady,
+            'endpointUrl' => (new Setup())->endpointUrl(),
+            'canManageSettings' => (bool) $user?->can('craft-mcp:manageSettings'),
         ]);
     }
 
@@ -280,6 +356,9 @@ class CpController extends Controller
         $posted['disabledScopes'] = array_values(array_filter((array) ($posted['disabledScopes'] ?? [])));
         $duration = $posted['previewTokenDuration'] ?? null;
         $posted['previewTokenDuration'] = is_numeric($duration) && (int) $duration > 0 ? (int) $duration : null;
+        if (isset($posted['assetUploadMaxBytes']) && is_numeric($posted['assetUploadMaxBytes'])) {
+            $posted['assetUploadMaxBytes'] = (int) $posted['assetUploadMaxBytes'];
+        }
         if (isset($posted['oauthAccessTokenTtl']) && is_numeric($posted['oauthAccessTokenTtl'])) {
             $posted['oauthAccessTokenTtl'] = (int) $posted['oauthAccessTokenTtl'];
         }
@@ -316,6 +395,18 @@ class CpController extends Controller
         \Craft::$app->getPlugins()->savePluginSettings($plugin, $settings->toArray());
 
         return true;
+    }
+
+    private function likelyNeedsPublicUrl(): bool
+    {
+        try {
+            $cp = rtrim((string) \Craft::$app->getConfig()->getGeneral()->getBaseCpUrl(), '/');
+            $site = rtrim((string) (\Craft::$app->getSites()->getPrimarySite()->getBaseUrl() ?? ''), '/');
+
+            return $cp !== '' && $site !== '' && $cp !== $site;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function callsToday(): int

@@ -1,56 +1,74 @@
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
-{% set title = "Tokens" %}
+{% set title = "Access" %}
 {% set selectedSubnavItem = "tokens" %}
 
 {% block content %}
   {% include "craft-mcp/_includes/ui" %}
   <div class="mcp">
-    <p class="mcp-intro">HTTP clients send a bearer token. Readonly can look, content can write entries, and full can use system tools. The secret is shown once.{% if apps is not null %} OAuth apps appear under Connected apps below — disconnect there instead of revoking a token.{% endif %}</p>
+    <p class="mcp-intro">Bearer tokens for HTTP clients, and apps connected over OAuth. Secrets are shown once when you mint a token.</p>
 
-    {% if apps is not null %}
-      <section class="pane mcp-card" style="margin-bottom: 1.5rem;">
-        <div class="mcp-card-head"><h2>Connected apps</h2></div>
-        {% if apps is empty %}
-          <div class="mcp-empty">
-            <strong>No apps connected</strong>
-            <p>When OAuth is on, Claude and other clients appear here after someone approves them at Connect.</p>
+    <section class="pane mcp-card" style="margin-bottom: 1.5rem;">
+      <div class="mcp-card-head"><h2>Connected apps</h2></div>
+      {% if not oauthReady %}
+        <div class="mcp-card-body">
+          <p>OAuth is off. Enable it, then paste the MCP URL in Claude Connectors (web, Desktop, or mobile).</p>
+          <p class="mcp-callout">Endpoint <code>{{ endpointUrl }}</code></p>
+          <div class="mcp-actions">
+            {% if canManageSettings %}
+              <form method="post">
+                {{ csrfInput() }}
+                {{ actionInput('craft-mcp/cp/toggle-setting') }}
+                {{ hiddenInput('key', 'oauth') }}
+                {{ hiddenInput('value', '1') }}
+                {{ hiddenInput('redirect', 'craft-mcp/tokens') }}
+                <button class="btn submit small" type="submit">Enable OAuth</button>
+              </form>
+            {% endif %}
+            <a class="btn small" href="{{ cpUrl('craft-mcp/setup') }}">Claude OAuth setup</a>
+            <button type="button" class="btn small" data-mcp-copy="#mcp-access-endpoint">Copy URL</button>
           </div>
-        {% else %}
-          <table>
-            <thead>
+          <pre id="mcp-access-endpoint" hidden>{{ endpointUrl }}</pre>
+        </div>
+      {% elseif apps is empty %}
+        <div class="mcp-empty">
+          <strong>No apps connected</strong>
+          <p>Paste <code>{{ endpointUrl }}</code> in Claude Connectors, then approve in the control panel.</p>
+        </div>
+      {% else %}
+        <table>
+          <thead>
+            <tr>
+              <th>App</th>
+              {% if showAppUser %}<th>User</th>{% endif %}
+              <th>Scope</th>
+              <th>Connected</th>
+              <th>Last used</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for app in apps %}
               <tr>
-                <th>App</th>
-                {% if showAppUser %}<th>User</th>{% endif %}
-                <th>Scope</th>
-                <th>Connected</th>
-                <th>Last used</th>
-                <th></th>
+                <td><strong>{{ app.name }}</strong></td>
+                {% if showAppUser %}<td>{{ appOwners[app.userId] ?? app.userId }}</td>{% endif %}
+                <td><span class="mcp-tag">{{ app.scope }}</span></td>
+                <td>{{ app.connected ? app.connected|date('short') : '—' }}</td>
+                <td>{{ app.lastUsed ? app.lastUsed|date('short') : 'Never' }}</td>
+                <td class="mcp-actions-cell">
+                  <form method="post">
+                    {{ csrfInput() }}
+                    {{ actionInput('craft-mcp/cp/disconnect-app') }}
+                    {{ hiddenInput('id', app.id) }}
+                    <button class="btn small" type="submit" onclick="return confirm('Disconnect this app? It loses access immediately.')">Disconnect</button>
+                  </form>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {% for app in apps %}
-                <tr>
-                  <td><strong>{{ app.name }}</strong></td>
-                  {% if showAppUser %}<td>{{ appOwners[app.userId] ?? app.userId }}</td>{% endif %}
-                  <td><span class="mcp-tag">{{ app.scope }}</span></td>
-                  <td>{{ app.connected ? app.connected|date('short') : '—' }}</td>
-                  <td>{{ app.lastUsed ? app.lastUsed|date('short') : 'Never' }}</td>
-                  <td class="mcp-actions-cell">
-                    <form method="post">
-                      {{ csrfInput() }}
-                      {{ actionInput('craft-mcp/cp/disconnect-app') }}
-                      {{ hiddenInput('id', app.id) }}
-                      <button class="btn small" type="submit" onclick="return confirm('Disconnect this app? It loses access immediately.')">Disconnect</button>
-                    </form>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% endif %}
-      </section>
-    {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </section>
 
     <div class="mcp-grid">
       <section class="pane mcp-card">

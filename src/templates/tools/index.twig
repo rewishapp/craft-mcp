@@ -1,8 +1,11 @@
 {% extends "_layouts/cp" %}
 {% set title = "Tools" %}
 {% set selectedSubnavItem = "tools" %}
-{% set toolbar %}
-  <input class="mcp-search" type="search" placeholder="Search tools" data-mcp-filter aria-label="Search tools">
+{% set actionButton %}
+  <div class="texticon search icon mcp-search-wrap">
+    <span class="texticon-icon search icon" aria-hidden="true"></span>
+    <input class="text mcp-search" type="search" placeholder="Search tools" data-mcp-filter aria-label="Search tools">
+  </div>
 {% endset %}
 
 {% block content %}

@@ -10,30 +10,176 @@
   <div class="mcp">
     <p class="mcp-intro">Agents read this install directly. Writes land as drafts you can review before they go live.</p>
 
-    <div class="mcp-status">
-      <span class="mcp-pill {{ settings.enabled ? 'is-on' : 'is-off' }}">{{ settings.enabled ? 'Server on' : 'Server off' }}</span>
-      <span class="mcp-tag">{{ craft.app.env }}</span>
-      <span class="mcp-pill {{ settings.httpTransport ? 'is-on' : '' }}">{{ settings.httpTransport ? 'HTTP on' : 'HTTP off' }}</span>
-      <span class="mcp-pill {{ settings.enableDangerousTools ? 'is-warn' : '' }}">{{ settings.enableDangerousTools ? 'Writes on' : 'Writes off' }}</span>
+    {% if not checklist.ready %}
+      <section class="pane mcp-card">
+        <div class="mcp-card-head"><h2>Setup checklist</h2></div>
+        <div class="mcp-card-body">
+          <ul class="mcp-checklist">
+            <li>
+              <span class="mcp-check {{ checklist.server ? 'is-done' : '' }}"></span>
+              <span>
+                {% if checklist.server %}Server on{% else %}<a href="{{ cpUrl('craft-mcp/settings') }}">Turn the server on</a>{% endif %}
+              </span>
+            </li>
+            <li>
+              <span class="mcp-check is-optional {{ checklist.writes ? 'is-done' : '' }}"></span>
+              <span>
+                {% if checklist.writes %}Writes on{% else %}Writes <em>(optional)</em> — enable when agents should edit content{% endif %}
+              </span>
+            </li>
+            <li>
+              <span class="mcp-check {{ checklist.connect ? 'is-done' : '' }}"></span>
+              <span>
+                {% if checklist.connect %}
+                  Connect path ready ({{ settings.httpTransport ? 'HTTP' : 'stdio' }})
+                {% else %}
+                  <a href="{{ cpUrl('craft-mcp/setup') }}">Pick a connect path</a> — local stdio or remote HTTP
+                {% endif %}
+              </span>
+            </li>
+            <li>
+              <span class="mcp-check {{ checklist.access ? 'is-done' : '' }}"></span>
+              <span>
+                {% if checklist.access %}
+                  Access ready (token or OAuth)
+                {% else %}
+                  <a href="{{ cpUrl('craft-mcp/tokens') }}">Mint a token</a> or <a href="{{ cpUrl('craft-mcp/settings') }}">enable OAuth</a>
+                {% endif %}
+              </span>
+            </li>
+            <li>
+              <span class="mcp-check {{ checklist.activity ? 'is-done' : '' }}"></span>
+              <span>
+                {% if checklist.activity %}First tool call recorded{% else %}Wait for the first Activity call after connecting{% endif %}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </section>
+    {% endif %}
+
+    <div class="mcp-status-cards">
+      <section class="pane mcp-status-card">
+        <div class="mcp-status-card-head">
+          <strong>Server</strong>
+          <span class="mcp-pill {{ settings.enabled ? 'is-on' : 'is-off' }}">{{ settings.enabled ? 'On' : 'Off' }}</span>
+        </div>
+        <p>{{ craft.app.env }}</p>
+        {% if canManage %}
+          <form class="mcp-toggle-form" method="post">
+            {{ csrfInput() }}
+            {{ actionInput('craft-mcp/cp/toggle-setting') }}
+            {{ hiddenInput('key', 'enabled') }}
+            {{ hiddenInput('value', settings.enabled ? '0' : '1') }}
+            <button class="btn small" type="submit">{{ settings.enabled ? 'Turn off' : 'Turn on' }}</button>
+          </form>
+        {% endif %}
+      </section>
+
+      <section class="pane mcp-status-card">
+        <div class="mcp-status-card-head">
+          <strong>Writes</strong>
+          <span class="mcp-pill {{ settings.enableDangerousTools ? 'is-warn' : '' }}">{{ settings.enableDangerousTools ? 'On' : 'Off' }}</span>
+        </div>
+        <p>{{ settings.enableDangerousTools ? 'Entry edits, uploads, and system tools' : 'Read-only until you opt in' }}</p>
+        {% if canManage %}
+          <form class="mcp-toggle-form" method="post">
+            {{ csrfInput() }}
+            {{ actionInput('craft-mcp/cp/toggle-setting') }}
+            {{ hiddenInput('key', 'enableDangerousTools') }}
+            {{ hiddenInput('value', settings.enableDangerousTools ? '0' : '1') }}
+            <button class="btn small" type="submit">{{ settings.enableDangerousTools ? 'Turn off' : 'Turn on' }}</button>
+          </form>
+        {% endif %}
+      </section>
+
+      <section class="pane mcp-status-card">
+        <div class="mcp-status-card-head">
+          <strong>HTTP</strong>
+          <span class="mcp-pill {{ settings.httpTransport ? 'is-on' : '' }}">{{ settings.httpTransport ? 'On' : 'Off' }}</span>
+        </div>
+        <p>Endpoint <code>{{ endpointUrl }}</code></p>
+        <div class="mcp-actions">
+          <button type="button" class="btn small" data-mcp-copy="#mcp-dash-endpoint">Copy URL</button>
+          {% if canManage %}
+            <form class="mcp-toggle-form" method="post">
+              {{ csrfInput() }}
+              {{ actionInput('craft-mcp/cp/toggle-setting') }}
+              {{ hiddenInput('key', 'httpTransport') }}
+              {{ hiddenInput('value', settings.httpTransport ? '0' : '1') }}
+              <button class="btn small" type="submit">{{ settings.httpTransport ? 'Turn off' : 'Turn on' }}</button>
+            </form>
+          {% endif %}
+        </div>
+        <pre id="mcp-dash-endpoint" hidden>{{ endpointUrl }}</pre>
+      </section>
+
+      <section class="pane mcp-status-card">
+        <div class="mcp-status-card-head">
+          <strong>OAuth</strong>
+          {% if oauthStatus == 'needsUrl' %}
+            <span class="mcp-pill is-warn">Needs URL</span>
+          {% elseif oauthStatus == 'on' %}
+            <span class="mcp-pill is-on">On</span>
+          {% else %}
+            <span class="mcp-pill">Off</span>
+          {% endif %}
+        </div>
+        {% if oauthStatus == 'needsUrl' %}
+          <p>Set <code>httpPublicUrl</code> so clients can reach Craft.</p>
+          <a class="btn small" href="{{ cpUrl('craft-mcp/settings') }}">Settings</a>
+        {% elseif oauthStatus == 'on' %}
+          <p>{{ appCount }} connected app{{ appCount == 1 ? '' : 's' }}</p>
+          <div class="mcp-actions">
+            <a class="btn small" href="{{ cpUrl('craft-mcp/tokens') }}">Access</a>
+            {% if canManage %}
+              <form class="mcp-toggle-form" method="post">
+                {{ csrfInput() }}
+                {{ actionInput('craft-mcp/cp/toggle-setting') }}
+                {{ hiddenInput('key', 'oauth') }}
+                {{ hiddenInput('value', '0') }}
+                <button class="btn small" type="submit">Turn off</button>
+              </form>
+            {% endif %}
+          </div>
+        {% else %}
+          <p>Paste the MCP URL in Claude Connectors after enabling.</p>
+          {% if canManage %}
+            <form class="mcp-toggle-form" method="post">
+              {{ csrfInput() }}
+              {{ actionInput('craft-mcp/cp/toggle-setting') }}
+              {{ hiddenInput('key', 'oauth') }}
+              {{ hiddenInput('value', '1') }}
+              <button class="btn small" type="submit">Turn on</button>
+            </form>
+          {% else %}
+            <a class="btn small" href="{{ cpUrl('craft-mcp/settings') }}">Settings</a>
+          {% endif %}
+        {% endif %}
+      </section>
     </div>
 
     <div class="mcp-metrics">
       <a class="pane mcp-metric" href="{{ cpUrl('craft-mcp/tools') }}">
+        <span class="mcp-metric-go" aria-hidden="true"></span>
         <em>Tools</em>
         <b>{{ toolCount }}</b>
         <span>of {{ toolTotal }} exposed</span>
       </a>
       <a class="pane mcp-metric" href="{{ cpUrl('craft-mcp/tokens') }}">
-        <em>Tokens</em>
+        <span class="mcp-metric-go" aria-hidden="true"></span>
+        <em>Access</em>
         <b>{{ tokenCount }}</b>
-        <span>access tokens</span>
+        <span>tokens · {{ appCount }} apps</span>
       </a>
       <a class="pane mcp-metric" href="{{ cpUrl('craft-mcp/activity') }}">
+        <span class="mcp-metric-go" aria-hidden="true"></span>
         <em>Activity</em>
         <b>{{ callsToday }}</b>
         <span>calls today</span>
       </a>
       <a class="pane mcp-metric" href="{{ cpUrl('craft-mcp/drafts') }}">
+        <span class="mcp-metric-go" aria-hidden="true"></span>
         <em>Drafts</em>
         <b>{{ draftCount }}</b>
         <span>waiting for review</span>
@@ -42,11 +188,14 @@
 
     <div class="mcp-grid">
       <section class="pane mcp-card">
-        <div class="mcp-card-head"><h2>Recent activity</h2></div>
+        <div class="mcp-card-head">
+          <h2>Recent activity</h2>
+          <a class="btn small" href="{{ cpUrl('craft-mcp/activity') }}">View all</a>
+        </div>
         {% if activity is empty %}
           <div class="mcp-empty">
             <strong>No tool calls yet</strong>
-            <p>Connect Cursor, Claude Code, Codex, or another client, then ask it to list sections.</p>
+            <p>Connect a client, then ask it to list sections.</p>
           </div>
         {% else %}
           <table>
@@ -67,45 +216,14 @@
 
       <section class="pane mcp-card">
         <div class="mcp-card-head">
-          <h2>Connect Cursor, Claude Code, Codex, or other</h2>
+          <h2>Connect</h2>
           <a class="btn small" href="{{ cpUrl('craft-mcp/setup') }}">Full setup</a>
         </div>
-        <div class="mcp-card-body mcp-connect">
-          <div class="mcp-connect-block">
-            <div class="mcp-connect-head">
-              <div>
-                <strong>Local</strong>
-                <span class="mcp-tag">stdio</span>
-              </div>
-              <button type="button" class="btn small" data-mcp-copy="#mcp-dash-stdio">Copy</button>
-            </div>
-            <p>This machine only. Uses this install’s PHP.</p>
-            <pre id="mcp-dash-stdio">{{ stdioSnippet }}</pre>
-          </div>
-
-          <div class="mcp-connect-block">
-            <div class="mcp-connect-head">
-              <div>
-                <strong>Online / production</strong>
-                <span class="mcp-pill {{ settings.httpTransport ? 'is-on' : '' }}">{{ settings.httpTransport ? 'HTTP on' : 'HTTP off' }}</span>
-              </div>
-              {% if settings.httpTransport %}
-                <a class="btn small submit" href="{{ cpUrl('craft-mcp/tokens') }}">Create token</a>
-              {% else %}
-                <a class="btn small" href="{{ cpUrl('craft-mcp/settings') }}">Enable HTTP</a>
-              {% endif %}
-            </div>
-            {% if settings.httpTransport %}
-              <p>Remote clients call <code>{{ endpointUrl }}</code>. Create a token, then paste the config.</p>
-              <pre id="mcp-dash-http">{{ httpSnippet }}</pre>
-              <div class="mcp-actions">
-                <button type="button" class="btn small" data-mcp-copy="#mcp-dash-http">Copy config</button>
-                <a class="btn small" href="{{ cpUrl('craft-mcp/tokens') }}">Tokens</a>
-              </div>
-            {% else %}
-              <p>Turn on HTTP transport for production or any client that is not on this machine. Then mint a bearer token.</p>
-              <p class="mcp-callout">Endpoint will be <code>{{ endpointUrl }}</code></p>
-            {% endif %}
+        <div class="mcp-card-body">
+          <p>Three paths: local stdio, remote token, or Claude OAuth. Open Setup for copy-paste blocks and checklists.</p>
+          <div class="mcp-actions">
+            <a class="btn small submit" href="{{ cpUrl('craft-mcp/setup') }}">Open Setup</a>
+            <a class="btn small" href="{{ cpUrl('craft-mcp/tokens') }}">Access</a>
           </div>
         </div>
       </section>

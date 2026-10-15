@@ -37,6 +37,9 @@ class Settings extends Model
 
     public string $entryWriteMode = 'draft';
 
+    /** Largest file upload_asset accepts, from a URL or base64, in bytes. Default 20 MB. */
+    public int $assetUploadMaxBytes = 20971520;
+
     public bool $httpTransport = false;
 
     public string $httpPath = 'mcp';
@@ -115,6 +118,7 @@ class Settings extends Model
             [['logLevel'], 'in', 'range' => ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency']],
             [['paginationLimit'], 'integer', 'min' => 1, 'max' => 500],
             [['maxResponseBytes'], 'integer', 'min' => 0],
+            [['assetUploadMaxBytes'], 'integer', 'min' => 1024],
             [['entryWriteMode'], 'in', 'range' => ['draft', 'live']],
             [['httpPath'], 'required'],
             [['httpPath'], 'match', 'pattern' => '/^[a-z0-9][a-z0-9\-\/]*$/i'],
